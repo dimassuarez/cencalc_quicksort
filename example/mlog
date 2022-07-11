@@ -1,0 +1,37 @@
+calc_sconform.sh is running....
+Processing trajectory and doing CC-MLA calcs 
+Using CUTOFF= -1  values for CCMLA calcs as predefined
+Using MOL_MASK=:1
+Using REFTOP=/home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top
+Using TRAJDIR=/home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files
+Assuming ALIAS_MDCRD=drug_25
+Created /scratch/TMPDIR_455358530 temporal directory
+Warning: /dev/shm (RAM) will be also used!
+Using all 12 available processors
+After doing ls /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25*.mdcrd .... we get
+number of trajectory files = 1 
+Trajectory: /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.mdcrd Init= 1 nframes= 1000000  offset= 1
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_1.in > torsion_1.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_2.in > torsion_2.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_3.in > torsion_3.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_4.in > torsion_4.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_5.in > torsion_5.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_6.in > torsion_6.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_7.in > torsion_7.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_8.in > torsion_8.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_9.in > torsion_9.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_10.in > torsion_10.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_11.in > torsion_11.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_12.in > torsion_12.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_13.in > torsion_13.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_14.in > torsion_14.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_15.in > torsion_15.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_16.in > torsion_16.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_17.in > torsion_17.out 
+ /opt/apps/SL7/amber21/bin/cpptraj  /home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/example/output_files/../top_traj_files/drug_25.top  <  torsion_18.in > torsion_18.out 
+Running cencalc_prep individual tasks (time consuming)
+Running cpptraj matrix job ...
+Running cencalc_prep global ...
+STOP  DONE!
+Running cencalc S1 ...
+Running cencalc CCMLA with cutoff=-1 

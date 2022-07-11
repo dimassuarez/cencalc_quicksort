@@ -1,0 +1,120 @@
+ _______________________________ 
+||  _____                       |
+||  \\   ||                     |
+||   \\  PROGRAM CENCALC_PREP   |
+||   //          v0.3           |
+||  //___||                     |
+||______________________________|
+  
+  
+  OPTIONS:
+ --------------------------------------------------
+ Distance Matrix file name:     
+ distance_matrix.dat                                         
+ Dihedral Information file name:
+ atoms_in_tor.info                                           
+ Using CutOff:               YES
+ Using column:                 2
+ k_value:                   0.50
+ Max. num. of Iterations:   1000
+ Step:                      5.00
+ Convergence Criterion:     0.00
+ Max. num. of Conformers:      3
+ Using Analytic Gradient:    YES
+                    NumFiles:   
+          18
+  
+  FILES:
+    1 d0001.dat   MOL_1_P1-MOL_1_C1-MOL_1_O4-MOL_1_C2                       
+    2 d0002.dat   MOL_1_O1-MOL_1_P1-MOL_1_C1-MOL_1_O4                       
+    3 d0003.dat   MOL_1_C1-MOL_1_O4-MOL_1_C2-MOL_1_C3                       
+    4 d0004.dat   MOL_1_O4-MOL_1_C2-MOL_1_C4-MOL_1_N1                       
+    5 d0005.dat   MOL_1_C2-MOL_1_C4-MOL_1_N1-MOL_1_C5                       
+    6 d0006.dat   MOL_1_C4-MOL_1_N1-MOL_1_C5-MOL_1_N2                       
+    7 d0007.dat   MOL_1_C4-MOL_1_N1-MOL_1_C9-MOL_1_N5                       
+    8 d0008.dat   MOL_1_N1-MOL_1_C5-MOL_1_N2-MOL_1_C6                       
+    9 d0009.dat   MOL_1_N1-MOL_1_C5-MOL_1_C8-MOL_1_C7                       
+   10 d0010.dat   MOL_1_N1-MOL_1_C9-MOL_1_N5-MOL_1_C8                       
+   11 d0011.dat   MOL_1_C5-MOL_1_N2-MOL_1_C6-MOL_1_N3                       
+   12 d0012.dat   MOL_1_C5-MOL_1_C8-MOL_1_C7-MOL_1_N3                       
+   13 d0013.dat   MOL_1_C5-MOL_1_C8-MOL_1_N5-MOL_1_C9                       
+   14 d0014.dat   MOL_1_N2-MOL_1_C6-MOL_1_N3-MOL_1_C7                       
+   15 d0015.dat   MOL_1_C6-MOL_1_N3-MOL_1_C7-MOL_1_N4                       
+   16 d0016.dat   MOL_1_O1-MOL_1_P1-MOL_1_O2-MOL_1_H1                       
+   17 d0017.dat   MOL_1_O1-MOL_1_P1-MOL_1_O3-MOL_1_H2                       
+   18 d0018.dat   MOL_1_N3-MOL_1_C7-MOL_1_N4-MOL_1_H7                       
+ --------------------------------------------------
+  
+ Number of Snapshots:      1000000
+ Info: The Number of Snapshots is read from the first file: d0001.dat                                                   
+  
+ OMP Parallel Execution
+ Number of Processors=          12
+ Number of Threads   =          12
+Reading BIGMATRIX in BIGMAT.dat                                                  
+ OK
+%=======================================================
+% Statistical Analyses of Discretized Dihedral Dynamics
+%=======================================================
+%                   Dihed ID                                S1(cal/mol K)  PDF minima (deg)    % Population         Average Life (#snap)     Freq of Change (1/#snap) 
+% d0012.dat  MOL_1_C5-MOL_1_C8-MOL_1_C7-MOL_1_N3                 -0.000   179.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0014.dat  MOL_1_N2-MOL_1_C6-MOL_1_N3-MOL_1_C7                 -0.000   179.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0011.dat  MOL_1_C5-MOL_1_N2-MOL_1_C6-MOL_1_N3                 -0.000   180.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0010.dat  MOL_1_N1-MOL_1_C9-MOL_1_N5-MOL_1_C8                 -0.000   179.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0006.dat  MOL_1_C4-MOL_1_N1-MOL_1_C5-MOL_1_N2                 -0.000   176.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0013.dat  MOL_1_C5-MOL_1_C8-MOL_1_N5-MOL_1_C9                 -0.000   180.5  --    --   100.0  --    --    999999.0    --        --     0.000001 FROZEN     
+% d0007.dat  MOL_1_C4-MOL_1_N1-MOL_1_C9-MOL_1_N5                  0.000    91.5 271.5  --     0.0 100.0  -         1.0  999999.0    --     0.000002 QUASIFROZEN
+% d0015.dat  MOL_1_C6-MOL_1_N3-MOL_1_C7-MOL_1_N4                  0.000    90.0 270.0  --     0.0 100.0  -         1.0  999999.0    --     0.000002 QUASIFROZEN
+% d0008.dat  MOL_1_N1-MOL_1_C5-MOL_1_N2-MOL_1_C6                 -0.000     0.0  90.0  --     0.0   0.0  -         0.0       1.0    --     0.000002 QUASIFROZEN
+% d0009.dat  MOL_1_N1-MOL_1_C5-MOL_1_C8-MOL_1_C7                  0.000    90.0 270.0  --     0.0 100.0  -         1.0  999999.0    --     0.000002 QUASIFROZEN
+% d0018.dat  MOL_1_N3-MOL_1_C7-MOL_1_N4-MOL_1_H7                  1.361    88.5 271.2  --    56.4  43.6  -     70552.1   48397.9    --     0.000017 SLOW       
+% d0003.dat  MOL_1_C1-MOL_1_O4-MOL_1_C2-MOL_1_C3                  0.027   148.0 348.2  --     0.2  99.8  -        34.3   18484.2    --     0.000108 SLOW       
+% d0005.dat  MOL_1_C2-MOL_1_C4-MOL_1_N1-MOL_1_C5                  1.098    13.8 185.0  --    75.9  24.1  -       408.6     119.1    --     0.003883 MEDIUM     
+% d0017.dat  MOL_1_O1-MOL_1_P1-MOL_1_O3-MOL_1_H2                  0.882     5.2 123.7 225.2  87.4   9.9   2.7     149.6      12.7       5.4 0.018596 MEDIUM     
+% d0016.dat  MOL_1_O1-MOL_1_P1-MOL_1_O2-MOL_1_H1                  0.891     6.9 121.0 230.6  86.1  12.5   1.4     116.9      17.2       3.4 0.018748 MEDIUM     
+% d0004.dat  MOL_1_O4-MOL_1_C2-MOL_1_C4-MOL_1_N1                  1.378   129.3 229.6 358.5  27.5   2.4  70.1      75.3       2.1      47.2 0.029719 MEDIUM     
+% d0002.dat  MOL_1_O1-MOL_1_P1-MOL_1_C1-MOL_1_O4                  0.988   147.1 234.9 359.7  86.0   5.1   8.9      69.8       2.7       6.0 0.045814 MEDIUM     
+% d0001.dat  MOL_1_P1-MOL_1_C1-MOL_1_O4-MOL_1_C2                  0.780   119.3 233.7 357.2   0.9  10.9  88.3       7.5       3.9      33.2 0.055247 MEDIUM     
+% Lower freq limit for FAST dihedrals     =  0.100000000
+% Lower freq limit for MEDIUM dihedrals   =  0.001000000
+% Maximum S1 for QUASIFROZEN dihedrals    =        0.010
+% Total first order entropy (cal/(mol K)) =        7.405
+%=======================================================
+% First selection of active columns (torsions).
+% Removing both FROZEN and QUASIFROZEN dihedrals 
+% New number of columns (dihedrals) in reduced data matrix=   8
+% Slow dihedrals=  2 Columns=   1    2
+% Medium-rate dihedrals=  6 Columns=   3    8
+   
+% Quasi-monomodal dihedrals (Dominant Population > 99%) nqmono=   1
+% d0003.dat  MOL_1_C1-MOL_1_O4-MOL_1_C2-MOL_1_C3              S1=   0.027 FREQ=  0.00010800
+% Quasi-monomodal dihedrals  USECOL=2
+% Rare dihedrals (Multimodal, but freq <   0.00017000) nrare=   1
+% d0018.dat  MOL_1_N3-MOL_1_C7-MOL_1_N4-MOL_1_H7              S1=   1.361 FREQ=  0.00001700
+% Rare dihedrals  USECOL=1
+% Free/Quasi-Monomodal dihedrals ONLY for marginal entropies
+% Rare dihedrals maybe more problematic
+% Most-likely correlated dihedrals  ncorr=   6
+% d0005.dat  MOL_1_C2-MOL_1_C4-MOL_1_N1-MOL_1_C5             S1=   1.098 FREQ=  0.00388300
+% d0017.dat  MOL_1_O1-MOL_1_P1-MOL_1_O3-MOL_1_H2             S1=   0.882 FREQ=  0.01859600
+% d0016.dat  MOL_1_O1-MOL_1_P1-MOL_1_O2-MOL_1_H1             S1=   0.891 FREQ=  0.01874800
+% d0004.dat  MOL_1_O4-MOL_1_C2-MOL_1_C4-MOL_1_N1             S1=   1.378 FREQ=  0.02971900
+% d0002.dat  MOL_1_O1-MOL_1_P1-MOL_1_C1-MOL_1_O4             S1=   0.988 FREQ=  0.04581400
+% d0001.dat  MOL_1_P1-MOL_1_C1-MOL_1_O4-MOL_1_C2             S1=   0.780 FREQ=  0.05524700
+% Most-likely correlated dihedrals USECOL=3-8
+   
+ Reading the distance matrix ... 
+ OK
+   
+ Reading the info file ... 
+ OK
+   
+ Making the new (or reduced) distance matrix ... 
+ OK
+   
+           Writing in reduced_dist_matrix.dat ... 
+ OK
+   
+ Writing in MATRIX.dat ...
+ OK
+   
