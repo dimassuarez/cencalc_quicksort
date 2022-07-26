@@ -179,12 +179,11 @@
 
 !---DEFAULT/INITIAL VALUES----------------------------------------------------------------
       idum=-1                                                 !Initialize idum for random       
-                                                              !number generator in function ran
       filedat='MATRIX.dat'                                    
       filedist='reduced_dist_matrix.dat'                      
       filetable='TABLE.out'                                   
       CutOff=8.0d0                                                
-      MaxOrder=4                                                
+      MaxOrder=2                                                
       MaxDist=0.d0
       UseCol=.false.
       GivenNumCol=.false.                                                   
@@ -1598,11 +1597,11 @@
           print*,"OPTIONS:"
           print*," -c/-cutoff CUTOFF                            Default: 8"
           print*,""
-          print*," -ns NUMBER_OF_SNAPSHOTS                      Default: Use all"
-          print*,"               The are two ways to do it:"
-          print*,"               -One Number                 "
-          print*,"               -Three Numbers(From the first"
-          print*,"                to the second every the third)"
+          print*," -ns LAST_SNAP_1  LAST_SNAP_2 OFFSET    Default: Use all snapshots."
+          print*,"     Calculations are run starting at the first frame in MATRIX.dat"
+          print*,"     and varying the final frame    from LAST_SNAP _1 to LAST_SNAP_2"
+          print*,"     using the given OFFSET . If only LAST_SNAP _1 is given"
+          print*,"     a single calculation is run using frames from 1 to LAST_SNAP _1."
           print*,""
           print*," -ccmla        Use CCMLA method               Default: ccmla"
           print*,""
@@ -1613,8 +1612,7 @@
           print*," -s2           Use MIE Second Order Method    Default: ccmla"
           print*,""
           print*," -t/-table TABLE_FILE_NAME"
-          print*,"               Save principal results in"
-          print*,"               table_file_name "
+          print*,"               Summary of results is printed in TABLE:FILE_NAME "
           print*,""
           print*," -dist REDUCED_DISTANCE_MATRIX_FILENAME       Default: reduced_dist_matrix.dat"
           print*,""

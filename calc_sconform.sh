@@ -98,12 +98,20 @@ else
       echo "Using TRAJDIR=$TRAJDIR"
    fi
 fi
-if [ -z "$ALIAS_MDCRD" ]
+if [ -z "$MDCRD_PREFIX" ]
 then
-   echo "Alias of mdcrd files not defined, but needed." 
+   echo "Prefix of mdcrd files not defined, but needed." 
    DO_EXIT=1
 else 
-   echo "Assuming ALIAS_MDCRD=$ALIAS_MDCRD"
+   echo "Assuming MDCRD_PREFIX=$MDCRD_PREFIX"
+fi
+if [ -z "$MDCRD_SUFFIX" ]
+then
+   echo "Suffix of mdcrd files not defined, but recommended." 
+   MDCRD_SUFFIX=".mdcrd"
+   echo "Attempting MDCRD_SUFFIX=$MDCRD_SUFFIX"
+else 
+   echo "Assuming MDCRD_SUFFIX=$MDCRD_SUFFIX"
 fi
 
 fi     # endif of DO_CC_MLA -lt 1
@@ -111,7 +119,7 @@ fi     # endif of DO_CC_MLA -lt 1
 # TEMP Directories
 if [  -z "$SCRATCH" ] 
 then
-   echo " SCRATCH directory not defined, but needed." 
+   echo "SCRATCH directory not defined, but needed." 
    DO_EXIT=1
 else 
    if [ ! -e  "$SCRATCH" ]
@@ -159,14 +167,14 @@ then
 # TRAJECTORY 
 i=0
 declare -a TRAJ=""
-for file in $(ls $TRAJDIR/${ALIAS_MDCRD}*.mdcrd)
+for midterm in $(cd $TRAJDIR; ls ${MDCRD_PREFIX}*${MDCRD_SUFFIX} | sed "s/${MDCRD_PREFIX}//" | sed "s/${MDCRD_SUFFIX}//" | sort -n; cd $WORKDIR)
 do
    let "i=$i+1"
-   TRAJ["$i"]=$file
+   TRAJ["$i"]=$TRAJDIR/${MDCRD_PREFIX}${midterm}${MDCRD_SUFFIX}
 done
 NTRAJ="$i"
 
-echo "After doing ls $TRAJDIR/${ALIAS_MDCRD}*.mdcrd .... we get"
+echo "After doing ls $TRAJDIR/${MDCRD_PREFIX}*${MDCRD_SUFFIX} .... we get"
 echo "number of trajectory files = $NTRAJ "  
 
 if [ $NTRAJ -eq 0 ]

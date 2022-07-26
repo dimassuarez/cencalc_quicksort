@@ -208,9 +208,9 @@
                                                               
       ConvCriterion = 1D-4                                      !Convergence criterion (gradient)
                                                               
-      MaxNumConf = 3                                            !Max number of conformers by torsion to look for 
+      MaxNumConf = 4                                          !Max number of conformers by torsion to look for 
                                                               
-      AnalyticGrad=.false.                                    !Use anal'aytical gradient for optimization, 
+      AnalyticGrad=.false.                                    !Use analytical gradient for optimization, 
                                                               !the ".false." means the usage of linear
                                                               !gradient interpolation
       Plot=.false.                                            !Plot Data 
@@ -1279,7 +1279,7 @@
           print*,""
           print*," --rdbigmat BIGMATRIX_FILE_NAME                Default: no "
           print*,"            The BIGMATRIX is read (not built) and then program continues"
-          print*,"            doing all the satistical analyses."
+          print*,"            doing satistical analysis and constructing reduced_dist_matrix.dat "
           print*,"            This option can be useful to distribute the processing  "
           print*,"            of many (and large) dihedral files across several nodes/proc."
           print*,""
@@ -1431,8 +1431,6 @@
 
       CALL COLOR('RED')
       CALL THKCRV(2)
-      print*,'ANG',ang
-      print*,'DEN',density
       CALL CURVE(Ang, density, 361)
 
       CALL LINESP(0.50d0) 
@@ -1478,6 +1476,7 @@
 
       CALL ENDGRF
 
+      CALL ERRMOD('protocol','off')
 
       CALL DISFIN
       if ( Saveplotdata ) then 
