@@ -1,0 +1,37 @@
+ _______________________________ 
+||  _____                       |
+||  \\   ||                     |
+||   \\  PROGRAM CENCALC_CCMLA  |
+||   //     using quicksort     |
+||  //___||                     |
+||______________________________|
+  
+ OMP Parallel Execution
+ Number of Processors=          12
+ Number of Threads   =           6
+  
+ Reading the data matrix..
+ filename: /dev/shm/TMPDIR_825155681/MATRIX.dat                        
+ CPU Time:     MATRIX load and processing       0.81 seconds     0.00 hours
+ REAL Time:     MATRIX load and processing       0.80 seconds     0.00 hours
+  
+-------------------------
+ CALCULATING THE ENTROPY 
+-------------------------
+=========================
+ Estimator: Max-Likelihood
+ Method: CC-MLA 
+ Cut-Off=-1.00000
+ Number of Snapshots= 1000000
+ Number of Columns  =       8
+=========================
+ CPU Time:                Computing CCMLA       5.70 seconds     0.00 hours
+ REAL Time:                Computing CCMLA       1.47 seconds     0.00 hours
+  
+------------------------------------       
+ ESTIMATED ENTROPY (cal/mol-Kelvin)        
+------------------------------------       
+# NumSnap     Entropy
+  1000000      2.4771      4.9444      5.3259      4.8439      4.8139      5.2746      5.3085      5.2092      5.1620      5.1882      5.2630      5.3441      5.2822      5.2878      5.3049      5.4054      5.4207      5.4327      5.4317      5.4416
+ CPU Time:                          Total       6.52 seconds     0.00 hours
+ REAL Time:                          Total       2.27 seconds     0.00 hours

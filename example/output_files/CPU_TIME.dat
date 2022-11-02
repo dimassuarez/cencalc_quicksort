@@ -1,0 +1,7 @@
+CPU TIME INFO : (s)
+===================
+Cpptraj-dihedral : 45.0406 
+Cpptraj-distmat  : 0.4992 
+Cencalc-Prep     : 1897.19 
+Cencalc-S1       : 1.85 
+Cencalc-CCMLA -1  : 6.52 
