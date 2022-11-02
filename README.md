@@ -16,7 +16,7 @@ We kindly request that any use of the CENCALC software or derivative should incl
 
 The methods implemented in CENCALC are fully described in the following references: 
 
-2)	E. Suárez, N. Díaz and D. Suárez. Entropy Calculations of Single Molecules by Combining the RigidRotor and Harmonic-Oscillator Approximations with Conformational Entropy Estimations from Molecular Dynamics Simulations J. Chem. Theor. Comput. 2011, 7, 2638-2653. DOI: 10.1021/ct200216n
+2)	E. Suárez, N. Díaz and D. Suárez. Entropy Calculations of Single Molecules by Combining the Rigid-Rotor and Harmonic-Oscillator Approximations with Conformational Entropy Estimations from Molecular Dynamics Simulations J. Chem. Theor. Comput. 2011, 7, 2638-2653. DOI: 10.1021/ct200216n
 
 3)	E. Suárez, D. Suárez. Multibody Local Approximation: Application to Conformational Entropy Calculations on Biomolecules. J. Chem. Phys. 2012, 137, 084115. DOI: 10.1063/1.4748104.
 
@@ -24,7 +24,7 @@ All questions regarding the usage of this version of the CENCALC program or bug 
 
 ### Installation and Usage
 
-The CENCALC software consists mainly of two standalone codes written in FORTRAN90, cencalc_prep.f90 and cencalc_ccmla.f90. The first program carries out various preparatory tasks prior to the main entropy calculations that are performed by cencalc_ccmla.f90. In this version, the cencalc_ccmla.f90 program makes use of the FORTRAN90 module qsort.f90 , implementing the recursive quicksort algorithm as programmed by David Bal (https://bitbucket.org/daviddbal/multi-threaded-quicksort-mergesort-fortran/src/master/). The three FORTRAN90 codes take advantage of shared-memory parallel computers through the OpenMP Application Program Interface. In addition, cencalc_prep.f90 requires the installation of the DISLIN high-level plotting library (https://www.dislin.de/). 
+The CENCALC software consists mainly of two standalone codes written in FORTRAN90, cencalc_prep.f90 and cencalc_ccmla.f90. The first program carries out various preparatory tasks prior to the main entropy calculations that are performed by cencalc_ccmla.f90. In this version, the cencalc_ccmla.f90 program makes use of the FORTRAN90 modules qsort.f90 , implementing the recursive quicksort algorithm as programmed by David Bal (https://bitbucket.org/daviddbal/multi-threaded-quicksort-mergesort-fortran/src/master/), and qsort_serial.f90, which implements the serial version. The FORTRAN90 codes take advantage of shared-memory parallel computers through the OpenMP Application Program Interface. In addition, cencalc_prep.f90 requires the installation of the DISLIN high-level plotting library (https://www.dislin.de/). 
 
 One simple Makefile is provided to build the binaries using the GCC compilers (v. 8.3.1 or higher).
 
@@ -53,8 +53,8 @@ Runtime options are passed to calc_sconform.sh as external variable declarations
 For example, if calc_sconform.sh is copied into the example directory, the following command
 
 ```
-env MOL_MASK=":1" REFTOP="$PWD/top_traj_files/drug_25.top" \
-    TRAJDIR="$PWD/top_traj_files" MDCRD_PREFIX="drug_25" \
+env NPROCS=6 MOL_MASK=":1" REFTOP="$PWD/top_traj_files/drug_25.top" \
+    TRAJDIR="$PWD/top_traj_files" MDCRD_PREFIX="drug_25" MDCRD_SUFFIX=".mdcrd" \
     DO_CC_MLA=1  CUTOFF=" -1 "  \
     SCRATCH="/scratch" ./calc_sconform.sh
 ```
@@ -70,4 +70,5 @@ d0002.dat.png      d0010.dat.png  d0018.dat.png        s_ccmla_-1.out
 d0003.dat.png      d0011.dat.png  distance_matrix.dat  s_ccmla_-1.tab
 d0004.dat.png      d0012.dat.png  matrix_cpptraj.out   s_ccmla.png
 d0005.dat.png      d0013.dat.png  MATRIX.dat           torsion.in 
+CPU_TIME.dat
 ```
