@@ -2,7 +2,7 @@
 
 prep   = cencalc_prep
 ccmla  = cencalc_ccmla
-all : $(prep) $(ccmla)
+all : $(prep) $(ccmla) 
 
 # DISLIN: scientific data plotting software at https://www.dislin.de/
 #
@@ -31,17 +31,19 @@ LDFLAG = $(opt) -fopenmp
 	$(FCOMPL) -c $(FFLAGC) $(FFLAGC_EXTRA) -o $@ $<
 
 # Object files
-OBJECTS_CCMLA = parameters.o qsort.o cencalc_ccmla.o 
+OBJECTS_CCMLA = parameters.o qsort.o qsort_serial.o cencalc_ccmla.o 
 OBJECTS_PREP = parameters.o cencalc_prep.o 
 
 # Clean objects
 clean:
-	@rm -f core $(OBJECTS_CCMLA) $(OBJECTS_PREP) *.mod $(obj)
+	@rm -f core $(OBJECTS_CCMLA)  $(OBJECTS_PREP) *.mod $(obj)
 
 # Program targets
 $(prep): $(OBJECTS_PREP) 
 	$(FCOMPL) $(FFLAGC) -o $(prep) $(OBJECTS_PREP) $(LDFLAG_PREP) 
 
 $(ccmla): $(OBJECTS_CCMLA) 
-	$(FCOMPL) $(FFLAGC) -o $(ccmla) $(OBJECTS_CCMLA) $(LDFLAG) 
+	$(FCOMPL) -o $(ccmla) $(OBJECTS_CCMLA) $(LDFLAG) 
+
+
 

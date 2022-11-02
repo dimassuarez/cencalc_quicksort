@@ -39,9 +39,15 @@ if [ -z "$DO_CC_MLA" ]
 then
    DO_CC_MLA="0"
 fi
-if [ $DO_CC_MLA -eq 0 ]; then echo "Procesing trajectory, but not doing CC-MLA calcs "; fi
+if [ -z "$DO_S2" ]
+then
+   DO_S2="0"
+fi
 if [ $DO_CC_MLA -eq 1 ]; then echo "Processing trajectory and doing CC-MLA calcs "; fi
-if [ $DO_CC_MLA -eq 2 ]; then echo "Doing just CC-MLA calcs (previously processsed trajectory) "; fi
+if [ $DO_CC_MLA -eq 2 ]; then echo "Doing CC-MLA calcs (previously processsed trajectory) "; fi
+
+if [ $DO_S2 -eq 1 ]; then echo "Processing trajectory and doing S2 calcs "; fi
+if [ $DO_S2 -eq 2 ]; then echo "Doing S2 calcs (previously processsed trajectory) "; fi
 
 # Composite CC-MLA ?
 if [ -z "$DO_COMP_CC_MLA" ]
@@ -59,7 +65,7 @@ else
    echo "Using CUTOFF=$CUTOFF values for CCMLA calcs as predefined"
 fi
 
-if [ $DO_CC_MLA -le 1 ]
+if [ $DO_CC_MLA -le 1 ] && [ $DO_S2 -le 1 ] 
 then
 
 # MASK DEFINITION  
@@ -148,7 +154,54 @@ export OMP_STACKSIZE="2G"
 # The following variables remain normally unchanged
 
 # OFFSET   
-OFFSET="1"
+if [ -z "$OFFSET" ]
+then
+   echo "Processing all snapshots"
+   OFFSET="1"
+else
+   echo "Processing snapshots with OFFSET=$OFFSET"
+fi
+
+# NINTERVAL
+if [ -z "$NINTERVAL" ]
+then
+   NINTERVAL="20"
+   echo "Convergence plot using ${NINTERVAL} points"
+else
+   echo "Convergence plot using ${NINTERVAL} points"
+fi
+
+# Concentration Parameter
+if [ -z "$KPARAM" ]
+then
+   KPARAM="0.50"
+fi
+echo "Concentration parameter K=$KPARAM"
+
+# Maximum number of conformations (3 recommended)
+if [ -z "$MAXNUMCONF" ]
+then
+   MAXNUMCONF="3"
+fi
+echo "Maximum number of conformations per torsion=$MAXNUMCONF"
+
+# VERBOSE option for CCMLA
+if [ -z "$VERBOSE" ]
+then
+   VERBOSE=""
+else
+   VERBOSE="-verbose"
+fi
+
+# Cutoffs for Composite Calcs
+if [ -z "$CUTS2F1" ]
+then
+    CUTS2F1="0.01"
+fi
+if [ -z "$CUTS2F2" ]
+then
+    CUTS2F2="0.10"
+fi
 
 # DISTANCE MATRIX CALCULATION (ON/OFF)
 DISTMAT="ON" 
@@ -161,7 +214,7 @@ if [ $DO_EXIT -eq 1 ]; then  echo 'Sorry, cannot continue'; exit; fi
 #WORK directory
 WORKDIR=$PWD
 
-if [ "${DO_CC_MLA}" -eq 0 ] || [ "${DO_CC_MLA}" -eq 1 ] 
+if [ "${DO_CC_MLA}" -le 1 ] && [ "${DO_S2}" -le 1 ]  
 then
 
 # TRAJECTORY 
@@ -224,7 +277,12 @@ then
 # Splitting the torsion.in file 
 grep -v 'trajin' torsion.in | grep -v '#' > temp.in
 nlines=$(cat temp.in | wc -l)
-let " nlines_per_task = ( $nlines / $OMP_NUM_THREADS ) "
+if [ $nlines -gt $OMP_NUM_THREADS ]
+then
+   let " nlines_per_task = ( $nlines / $OMP_NUM_THREADS ) "
+else
+   nlines_per_task=1
+fi
 split -l $nlines_per_task  -d  temp.in   temp_X
 rm -f input.torsion 
 itor=0
@@ -249,6 +307,9 @@ $CPPTRAJ  $REFTOP < torsion.in > torsion_cpptraj.out
 
 fi
 
+# CPPTRAJ CPU TIME 
+CPU_TOR=$(grep 'Total execution time:' torsion*out | awk '{print SUM+=$5}' | tail -1)
+
 # Processing dihedral data 
 ls d????.dat > LISTA
 
@@ -257,13 +318,14 @@ echo "Running cencalc_prep individual tasks (time consuming)"
 for file in $(cat LISTA)
 do
   dihed=${file/.dat/}
-  echo  "$PREP -k 0.5 -nocut -ag yes -plot yes -wrbigmat ${dihed}.bm ${file} > ${dihed}.out" >> TASK.sh
+  echo  "$PREP -k $KPARAM  -maxconf $MAXNUMCONF -nocut -ag yes -plot yes -wrbigmat ${dihed}.bm ${file} > ${dihed}.out" >> TASK.sh
 done
 
 chmod 755 TASK.sh
 export OMP_NUM_THREADS=1
 cat TASK.sh | $PARALLEL -j $NPROCS
 
+CPU_PREP=$(grep ' CPU-TIME ' d????.out | awk '{print SUM+=$4}' | tail -1)
 paste d????.bm | sed 's/\t//g' > BIGMAT.dat
 grep -h 'Minima' d????.out  > MINIMA.dat
 
@@ -274,28 +336,39 @@ then
 
   echo "Running cpptraj matrix job ..."
   $CPPTRAJ   $REFTOP < matrix.in > matrix_cpptraj.out 
+  CPU_DISTMAT=$(grep 'Total execution time:' matrix_cpptraj.out | awk '{print $5}' )
+
   #Preparing CENCALC data
   echo "Running cencalc_prep global ..."
-  $PREP -k 0.5 -ag yes -plot yes -rdbigmat BIGMAT.dat  d????.dat > cencalc_prep.out 
+  $PREP -k $KPARAM  -maxconf $MAXNUMCONF -ag yes -plot yes -rdbigmat BIGMAT.dat  d????.dat > cencalc_prep.out 
 
 else
 
 #Preparing CENCALC data
   echo "Running cencalc_prep global ..."
-  $PREP -k 0.5 -ag yes -plot yes -nocut  -rdbigmat BIGMAT.dat  d????.dat > cencalc_prep.out 
+  $PREP -k $KPARAM  -maxconf $MAXNUMCONF -ag yes -plot yes -nocut  -rdbigmat BIGMAT.dat  d????.dat > cencalc_prep.out 
 
 fi
 
 # Copy important stuff in WORKDIR
 cp cencalc_prep.out MATRIX.dat MINIMA.dat reduced_dist_matrix.dat distance_matrix.dat \
-   matrix_cpptraj.out atoms_in_tor.info torsion.in  d*.png    $WORKDIR/
+   matrix_cpptraj.out atoms_in_tor.info torsion.in d*.png    $WORKDIR/
+
+echo "CPU TIME INFO : (s)" >  $WORKDIR/CPU_TIME.dat
+echo "===================" >> $WORKDIR/CPU_TIME.dat
+echo "Cpptraj-dihedral : $CPU_TOR " >> $WORKDIR/CPU_TIME.dat
+echo "Cpptraj-distmat  : $CPU_DISTMAT " >> $WORKDIR/CPU_TIME.dat
+echo "Cencalc-Prep     : $CPU_PREP " >> $WORKDIR/CPU_TIME.dat
 
 #Running cencalc 
 echo "Running cencalc S1 ..."
 
 NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
-let "NSTEP = ${NFRAMES} / 20"
+let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
 $CENCALC -s1  -c -1 -data MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out
+
+CPU_S1=$(grep ' Total ' s1.out  | grep CPU | awk '{print $4}') 
+echo "Cencalc-S1       : $CPU_S1 " >> $WORKDIR/CPU_TIME.dat
 
 cp  s1_plot.tab  s1.out $WORKDIR/ 
 
@@ -305,24 +378,20 @@ rm -r -f $TMPDIR
 
 fi 
 
-# Running CCMLA composite calcs. Only the most-likely correlated torsions are included
-# in the CCMLA calcs while the rest of active torsions are described at first order
-# Users should check the automatic torsion classificacion.
 if [ "$DO_CC_MLA" -eq 1 ]  || [ "$DO_CC_MLA" -eq 2 ]
 then
 
    if [ ! -e MATRIX.dat ];  then  echo "DO_CC_MLA=1,2 but MATRIX.dat does not exist"; exit; fi
-   if [ ! -e cencalc_prep.out ];  then  echo "DO_CC_MLA=1,2 but cencalc_prep.out does not exist"; exit; fi
    NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
-   let "NSTEP = ${NFRAMES} / 20"
+   let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
 
    TT=$(date +%N)
    TMPSHM=/dev/shm/TMPDIR_${TT}
    mkdir $TMPSHM
    cp MATRIX.dat $TMPSHM/
 
-   rm -f ccmla.tab
-   touch ccmla.tab 
+   rm -f ccmla_plot.tab
+   touch ccmla_plot.tab 
    cuttoff_plot=""
 
    if [ ! -e s1_plot.tab ]; then $CENCALC -s1 -c -1 -data $TMPSHM/MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out; fi
@@ -330,85 +399,57 @@ then
    if [ $DO_COMP_CC_MLA -eq  0 ]
    then 
 
-      for cutoff in $(echo $CUTOFF)
-      do
-          echo "Running cencalc CCMLA with cutoff=${cutoff} "
-          $CENCALC   -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
-           -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_${cutoff}.tab >  s_ccmla_${cutoff}.out
-           paste ccmla.tab s_ccmla_${cutoff}.tab  > tmp; mv tmp ccmla.tab
-           cutoff_plot="${cutoff_plot} ${cutoff}"
-      done
+        for cutoff in $(echo $CUTOFF)
+        do
+            echo "Running cencalc CCMLA with cutoff=${cutoff} "
+            $CENCALC $VERBOSE -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
+             -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_${cutoff}.tab >  s_ccmla_${cutoff}.out
+             paste ccmla_plot.tab s_ccmla_${cutoff}.tab  > tmp; mv tmp ccmla_plot.tab
+             cutoff_plot="${cutoff_plot} ${cutoff}"
+             CPU_CC=$(grep ' Total ' s_ccmla_${cutoff}.out  | grep CPU | awk '{print $4}') 
+             echo "Cencalc-CCMLA ${cutoff}  : $CPU_CC " >> CPU_TIME.dat
+        done
+        sed -i 's/\t/ /g' ccmla_plot.tab
 
    else
 
-#  Types of dihedrals
-      echo "Building CC-MLA  composite approx." 
-      FREE_USECOL=$(grep USECOL cencalc_prep.out | grep Free | sed 's/USECOL=/USECOL=  /' | awk '{print $NF}')
-      QUASI_USECOL=$(grep USECOL cencalc_prep.out | grep Quasi | sed 's/USECOL=/USECOL=  /' | awk '{print $NF}')
-      RARE_USECOL=$(grep USECOL cencalc_prep.out | grep Rare  | sed 's/USECOL=/USECOL=  /' | awk '{print $NF}')
-      CORR_USECOL=$(grep USECOL cencalc_prep.out | grep correlated  | sed 's/USECOL=/USECOL=  /' | awk '{print $NF}')
-      
-#      
-      echo "cencalc_prep classified torsions as follows:"
-      echo "  Free torsions = $FREE_USECOL"
-      echo "  Quasi-monomodal torsions = $QUASI_USECOL"
-      echo "  Rare torsions (likely uncorrelated) = $RARE_USECOL"
-      S1_USECOL=""
-      if [ ! -z  ${FREE_USECOL}  ]; then  S1_USECOL=${FREE_USECOL}; fi
-      if [ ! -z  ${RARE_USECOL}  ] && [ ! -z ${S1_USECOL}  ]; then  S1_USECOL=${S1_USECOL}","${RARE_USECOL}; else S1_USECOL=${RARE_USECOL}; fi
-      if [ ! -z  ${QUASI_USECOL} ] && [ ! -z ${S1_USECOL}  ]; then  S1_USECOL=${S1_USECOL}","${QUASI_USECOL}; else S1_USECOL=${QUASI_USECOL}; fi
-      echo "  Hence, first-order (independent) torsions =$S1_USECOL"
-      echo "  Most-likely correlated torsions = $CORR_USECOL"
-      echo "Such classification should be double checked"
-      echo "See futher info in cencalc_prep.out"
-      
-      
-      echo "Running cencalc S1 A region "
-      $CENCALC -s1 -c -1 -data $TMPSHM/MATRIX.dat  -usecol $S1_USECOL -ns $NSTEP $NFRAMES $NSTEP  -t s1_A.tab  > s1_A.out 
-      
-      for cutoff in $(echo $CUTOFF)
-      do
-          echo "Running cencalc CCMLA B region cutoff=${cutoff} "
-          $CENCALC   -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
-           -usecol $CORR_USECOL  \
-           -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_B_${cutoff}.tab >  s_ccmla_B_${cutoff}.out
-           paste ccmla.tab s_ccmla_B_${cutoff}.tab  > tmp; mv tmp ccmla.tab
+       touch ccmla_plot.tab 
+       cuttoff_plot=""
+       for cutoff in $(echo $CUTOFF)
+       do
+           echo "Running cencalc composite CCMLA cutoff=${cutoff} "
+           $CENCALC $VERBOSE  -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
+             -s2filt $CUTS2F1  $CUTS2F2  -prs2mat s_ccmla_comp.s2mat \
+            -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_comp_${cutoff}.tab >  s_ccmla_comp_${cutoff}.out
+           paste ccmla_plot.tab s_ccmla_comp_${cutoff}.tab  > tmp; mv tmp ccmla_plot.tab
            cutoff_plot="${cutoff_plot} ${cutoff}"
-      done
+           CPU_CC=$(grep ' Total ' s_ccmla_comp_${cutoff}.out  | grep CPU | awk '{print $4}') 
+           echo "Cencalc-CCMLA comp $CUTS2F1  $CUTS2F2  ${cutoff} : $CPU_CC " >> CPU_TIME.dat
+       done
+       sed -i 's/\t/ /g' ccmla_plot.tab
 
-   fi
-
-   sed -i 's/\t/ /g' ccmla.tab
-
-if [ $DO_PLOT -eq 1 ]
-then
-
+fi
+     
 $OCTAVE -q <<EOF
 A=load('s1_plot.tab');
-isnap=A(:,1);
 s1=A(:,2);
+isnap=A(:,1);
 clear A;
 
-B=load('ccmla.tab');
+cutoff=[ $cutoff_plot  ];
+
+nplot=length(cutoff);
+
+B=load('ccmla_plot.tab');
 [n,m]=size(B);
-ncorr=m/2;
 
-comp=${DO_COMP_CC_MLA};
-if comp == 1 
-  A=load('s1_A.tab');
-  s1_A=A(:,2);
-  clear A;
-else
-  s1_A=0;
-end
-
+ncorr=(m/nplot);
 j=0;
-scc=zeros(n,ncorr);
-for i=[2:2:m]
+scc=zeros(n,nplot);
+for i=[ncorr:ncorr:m]
   j=j+1;
-  scc(:,j)=B(:,i).+s1_A;
+  scc(:,j)=B(:,i);
 end
-cutoff=[ $cutoff_plot ];
 
 T=0.300;
 %Representacion grafica 
@@ -421,10 +462,15 @@ ymax=max(-T*s1);
 legend('s1');
 hold
 txt=['S_1'];
+composite=${DO_COMP_CC_MLA};
 
-for j=[1:ncorr]
+for j=[1:nplot]
   plot (isnap,-T*scc(:,j),'-o','Linewidth',2,'Markersize',4)
-  txt=[txt;['r_c=',num2str(cutoff(j))]];
+  if composite == 1
+  txt=[txt;['CCMLA Comp. r_c=',num2str(cutoff(j))]];
+  else
+  txt=[txt;['CCMLA r_c=',num2str(cutoff(j))]];
+  end
   ymin_corr=min(-T*scc(:,j));
   ymax_corr=max(-T*scc(:,j));
   ymin=min([ymin,ymin_corr]);
@@ -443,13 +489,157 @@ legend(txt);
 xlim([0 max(isnap)])
 ylim([ymin*1.1  ymax*0.9 ])
 xlabel('# Snap ','Fontsize',18)
+% \305 for Angstroms 
 ylabel(['-TS_{conform} kcal/mol'],'Fontsize',18)
 print(h,'s_ccmla.png','-dpng','-color')
+
+if nplot > 1 
+
+if composite == 1 
+   fid=fopen('s_ccmla_composite.tab','w');
+else
+   fid=fopen('s_ccmla.tab','w');
+end
+fmtA=' %s ';
+fmtB=' %i ';
+for j=[1:nplot]
+   if  composite == 1
+   fmtA=[fmtA,' CCMLA Comp r_c=%6.2f '];
+   else
+   fmtA=[fmtA,' CCMLA r_c=%6.2f '];
+   end
+   fmtB=[fmtB,' %10.4f '];
+end
+fmtA=[fmtA,'\n'];
+fmtB=[fmtB,'\n'];
+fprintf(fid,fmtA,'# NumSnap',cutoff);
+for i=[1:n]
+   fprintf(fid,fmtB,isnap(i),scc(i,:))
+end
+fclose(fid);
+
+end
+
 EOF
+
+rm -r -f $TMPSHM 
 
 fi
 
-   rm -r -f $TMPSHM 
+
+if [ "$DO_S2" -eq 1 ]  || [ "$DO_S2" -eq 2 ]
+then
+
+   if [ ! -e MATRIX.dat ];  then  echo "DO_S2=1,2 but MATRIX.dat does not exist"; exit; fi
+   NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
+   let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
+
+   TT=$(date +%N)
+   TMPSHM=/dev/shm/TMPDIR_${TT}
+   mkdir $TMPSHM
+   cp MATRIX.dat $TMPSHM/
+
+   rm -f s2_plot.tab
+   touch s2_plot.tab 
+   cuttoff_plot=""
+
+   if [ ! -e s1_plot.tab ]; then $CENCALC -s1 -c -1 -data $TMPSHM/MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out; fi
+
+        for cutoff in $(echo $CUTOFF)
+        do
+            echo "Running cencalc S2 with cutoff=${cutoff} "
+            $CENCALC $VERBOSE -s2 -shuffle  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
+             -ns $NSTEP  $NFRAMES  $NSTEP  -t s2_${cutoff}.tab >  s2_${cutoff}.out
+             paste s2_plot.tab s2_${cutoff}.tab  > tmp; mv tmp s2_plot.tab
+             cutoff_plot="${cutoff_plot} ${cutoff}"
+             CPU_S2=$(grep ' Total ' s2_${cutoff}.out  | grep CPU | awk '{print $4}') 
+             echo "Cencalc-S2 ${cutoff}  : $CPU_S2 " >> CPU_TIME.dat
+        done
+        sed -i 's/\t/ /g' s2_plot.tab
+     
+$OCTAVE -q <<EOF
+A=load('s1_plot.tab');
+s1=A(:,2);
+isnap=A(:,1);
+clear A;
+
+cutoff=[ $cutoff_plot  ];
+
+nplot=length(cutoff);
+
+B=load('s2_plot.tab');
+[n,m]=size(B);
+
+ncorr=(m/nplot);
+j=0;
+scc=zeros(n,nplot);
+for i=[ncorr:ncorr:m]
+  j=j+1;
+  scc(:,j)=B(:,i);
+end
+
+T=0.300;
+%Representacion grafica 
+clf();
+h=figure(1);
+
+plot (isnap,-T*s1,'-o','Linewidth',2,'Markersize',4)
+ymin=min(-T*s1);
+ymax=max(-T*s1);
+legend('s1');
+hold
+txt=['S_1'];
+
+for j=[1:nplot]
+  plot (isnap,-T*scc(:,j),'-o','Linewidth',2,'Markersize',4)
+  txt=[txt;['S2 r_c=',num2str(cutoff(j))]];
+  ymin_corr=min(-T*scc(:,j));
+  ymax_corr=max(-T*scc(:,j));
+  ymin=min([ymin,ymin_corr]);
+  ymax=max([ymax,ymax_corr]);
+end
+
+grid on;
+W = 8; H = 6;
+set(h,'PaperUnits','inches')
+set(h,'PaperOrientation','portrait');
+set(h,'PaperSize',[H,W])
+set(h,'PaperPosition',[0,0,W,H])
+set(gca,'Fontname','Times')
+set(gca,'Fontsize',18)
+legend(txt);
+xlim([0 max(isnap)])
+ylim([ymin*1.1  ymax*0.9 ])
+xlabel('# Snap ','Fontsize',18)
+% \305 for Angstroms 
+ylabel(['-TS_{conform} kcal/mol'],'Fontsize',18)
+print(h,'s2.png','-dpng','-color')
+
+if nplot > 1 
+
+fid=fopen('s_s2.tab','w');
+fmtA=' %s ';
+fmtB=' %i ';
+for j=[1:nplot]
+   fmtA=[fmtA,' S2 r_c=%6.2f '];
+   fmtB=[fmtB,' %10.4f '];
+end
+fmtA=[fmtA,'\n'];
+fmtB=[fmtB,'\n'];
+fprintf(fid,fmtA,'# NumSnap',cutoff);
+for i=[1:n]
+   fprintf(fid,fmtB,isnap(i),scc(i,:))
+end
+fclose(fid);
+
+end
+
+EOF
+
+
+
+
+rm -r -f $TMPSHM 
 
 fi
 
