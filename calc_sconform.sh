@@ -7,11 +7,13 @@
 ##########################################################################3
 # Programs being used
 
+
 #CENCALC programs
-export LD_LIBRARY_PATH="/opt/apps/SL7/dislin-11.4/":$LD_LIBRARY_PATH
-CENCALC_PATH="/home/dimas/SCRIPTS/CENCALC/CCMLA_QSORT/"
+export LD_LIBRARY_PATH="/opt/dislin/":$LD_LIBRARY_PATH
+CENCALC_PATH="/opt/ccmla/"
 CENCALC="$CENCALC_PATH/cencalc_ccmla"
-PREP="$CENCALC_PATH/cencalc_prep"
+
+# Make sure that get_tor.py has execution permissions
 GETTOR="$CENCALC_PATH/get_tor.py -noMet -puck" # Choose torsion selection options here 
 
 # AMBER trajectory analysis software
@@ -26,7 +28,8 @@ NCDUMP=$(which  ncdump| grep -v alias)
 if [ -z "$NCDUMP" ]; then echo 'ncudmp seems to be not available, but needed!';  DO_EXIT=1; fi
 
 #  GNU Parallel builds and runs commands in parallel. 
-PARALLEL="/opt/apps/SL6/parallel/bin/parallel --no-notice "  
+PARALLEL=$(which  parallel | grep -v alias)
+if [ -z "$PARALLEL" ]; then echo 'parallel seems to be not available, but needed!';  DO_EXIT=1; fi
 
 ##########################################################################3
 # The following environmental variables specify the solute mask, 
