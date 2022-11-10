@@ -1488,6 +1488,7 @@ SUBROUTINE CCMLA_CALC(N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot     &
 
          ! Printing List of Neigbohrs
          if ( verbose ) then
+            write(*,'(''NUMNEIG='',I6)') NumNeig(i)
             write(*,'(''COL='',I3,'' Neighbohrs='',512(I4))') i,(NeigList(i,j),j=1,NumNeig(i))
             write(*,'(''IDCOL='',I3,'' Neighbohrs='',512(I4))') idcol(i),(idcol(NeigList(i,j)),j=1,NumNeig(i))
          endif
@@ -1806,7 +1807,7 @@ SUBROUTINE CCMLA_CALC_OMP(N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot     &
 !$omp end do
 !$omp end parallel
 
-! To avoid relicating tmpN, this loop is not parallelized
+! To avoid replicating tmpN, this loop is not parallelized
    do j=1,NumCol
       call Randomize_Row(RandRow,NumSnapTot)
       do i=1,NumSnapTot
@@ -1915,6 +1916,7 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
    integer i,j,k,c,l,ii,idummy                             !  Auxiliary index variables
    integer numid,ifirst,ilast,code_length
    integer,dimension (:),allocatable :: indx               ! Index of
+   integer,dimension (:,:),allocatable :: iconf_segment    ! Aray collecting the abundances of conformational states
    integer,dimension (:),allocatable :: iconf              ! Aray collecting the abundances of conformational states
    integer(kind=16) nbase
    integer(kind=16),dimension (:),allocatable :: basepower(:)
@@ -1924,10 +1926,16 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
 !
 !     Determine the number of ids required for each row in MATRIX
 !
-   code_length=30
+   code_length=30    ! Typically this value ensures that idcodes will be lower than huge(nbase)
    numid=NumCol/code_length+1
 !
-!     Precomputing the vector for BASE_nbase ---> BASE_10 conversion
+   if ( numid .gt. code_length ) then
+      write(*,*) 'Sorry. This is certainly too much !' 
+      write(*,*) 'The number of variables ',NumCol,'is too big!' 
+      stop
+   endif
+!
+!  Precomputing the vector for BASE_nbase ---> BASE_10 conversion
 !
    nbase=int(idmax+1,kind=16)
    allocate(basepower(code_length))
@@ -1935,7 +1943,7 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
       basepower(i)=nbase**(int(i-1,kind=16))
    enddo
 !
-!     Compute the integer ID codes for each row
+!  Compute the integer ID codes for each row
 !
    allocate(idcode(NumSnapTot,numid))
    ifirst=1
@@ -1958,31 +1966,93 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
 !
    enddo
 !
-!     Sorting ID codes
+!  Sorting ID codes of each segment
 !
    allocate (indx(NumSnapTot))
    allocate (idcode_temp(NumSnapTot))
+   allocate (iconf_segment(NumSnapTot,numid))
+   allocate (iconf(NumSnapTot))
+
+   do l=1,numid
+
    do i=1,NumSnapTot
-      idcode_temp(i)=idcode(i,1)
+      idcode_temp(i)=idcode(i,l)
       indx(i)=i
    enddo
    call MTSort(idcode_temp,indx,NumSnapTot,"Ascending")
 !
-!     counting conformational states
+!  counting conformational states for each id segment
 !
-   allocate (iconf(NumSnapTot))
-   iconf(indx(1))=1
    c=1
+   iconf_segment(indx(1),l)=1
    do k=2,NumSnapTot
       i=indx(k)
       j=indx(k-1)
-      lconf=.true.
-      do l=1,numid
-         lconf=lconf .and.  ( idcode(i,l) .eq. idcode(j,l) )
-      enddo
+      lconf=( idcode(i,l) .eq. idcode(j,l) )
       if ( .not. lconf ) c=c+1
-      iconf(i)=c
+      iconf_segment(i,l)=c
    enddo
+ 
+   enddo
+!
+   if ( numid  .gt.  1 ) then
+!     iconf_segment keeps the unique IDs of the conformational substates of each
+!     segment. Hence, we repeat the above strategy:
+!          1   get the idcode of the iconf_segment(i,:) rows
+!          2   sort them 
+!          3   count conformational states for snapshots
+
+      deallocate(basepower)
+      k=0
+      do l=1,numid
+         j=maxval(iconf_segment(:,l))
+         if (k .lt. j) k=j
+      enddo
+      nbase=int(k+1,kind=16)        
+                                   
+      allocate(basepower(numid))
+      do i=1,numid
+         basepower(i)=nbase**(int(i-1,kind=16))
+!
+!     Eventually, we may reach the huge limit
+!     because the possible values of iconf_segment may rank on the millions.
+!     Fortunately, numid is expected to be a small integer (2-3) so that
+!     most likely the idcodes fit into the integer (kind=16) type. Anyway, better to check
+!
+        if ( huge(nbase) / basepower(i) .lt. nbase ) then
+           write(*,*) 'Probably, we have reached the representability limit'
+           write(*,*) 'It is not possible to handle idcodes with kind=16'
+           write(*,*) 'limit=',huge(nbase)
+           write(*,*) 'i=',i,' numid=',numid
+           write(*,*) 'nbase=',nbase
+           write(*,*) 'basepower=',basepower(i)
+           stop
+        endif
+     enddo
+
+      do k=1,NumSnapTot
+         idcode(k,1)=dot_product(int(iconf_segment(k,1:numid),kind=16),basepower(1:numid))
+      enddo
+!     print*,' MAXIMUM IDCODE ',maxval(idcode(:,1))
+      do i=1,NumSnapTot
+          idcode_temp(i)=idcode(i,1)
+          indx(i)=i
+      enddo
+
+      call MTSort(idcode_temp,indx,NumSnapTot,"Ascending")
+      c=1
+      iconf(indx(1))=1
+      do k=2,NumSnapTot
+          i=indx(k)
+          j=indx(k-1)
+          lconf=( idcode(i,1) .eq. idcode(j,1) )
+          if ( .not. lconf ) c=c+1
+          iconf(i)=c
+      enddo
+   else
+!     if numid=1 then we already have the unique IDs of the conformational states
+      iconf=iconf_segment(:,1)
+   endif
 !
    CountState=0
 !
@@ -2005,6 +2075,7 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
    NumState=c
 !
    deallocate (iconf)
+   deallocate (iconf_segment)
    deallocate (indx)
    deallocate (basepower)
    deallocate (idcode)
@@ -2012,7 +2083,6 @@ SUBROUTINE ENTRO_OMP_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTo
 
    return
 END SUBROUTINE ENTRO_OMP_QSORT
-!-----------------------------------------------------------------------------------------
 
 !*****************************************************************************************
 SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
@@ -2055,7 +2125,6 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
    integer NumInterval                                     !Number of Snap interval
    integer NumSnapTot                                      !Total number of snapshots considered
    integer NumSnap                                         !Number of snapshots in the current CALC
-   integer NumState                                        !Number of Detected Conformational States
    integer idmax                                           !Maximum integer value in N
    integer NumSnap0
    integer  N(NumSnapTot,NumCol)                           ! Input Matrix
@@ -2064,20 +2133,27 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
    integer i,j,k,c,l,ii,idummy                             !  Auxiliary index variables
    integer numid,ifirst,ilast,code_length
    integer,dimension (:),allocatable :: indx               ! Index of
+   integer,dimension (:),allocatable :: CountState(:)      ! Array collecting the counting of Conformational states
+   integer,dimension (:,:),allocatable :: iconf_segment    ! Aray collecting the abundances of conformational states
    integer,dimension (:),allocatable :: iconf              ! Aray collecting the abundances of conformational states
    integer(kind=16) nbase
    integer(kind=16),dimension (:),allocatable :: basepower(:)
-   integer(kind=16),dimension (:),allocatable :: CountState(:)
    integer(kind=16),dimension (:,:),allocatable :: idcode(:,:)
    integer(kind=16),dimension (:),allocatable :: idcode_temp(:)
    logical lconf
 !
 !     Determine the number of ids required for each row in MATRIX
 !
-   code_length=30
+   code_length=30    ! Typically this value ensures that idcodes will be lower than huge(nbase)
    numid=NumCol/code_length+1
 !
-!     Precomputing the vector for BASE_nbase ---> BASE_10 conversion
+   if ( numid .gt. code_length ) then
+      write(*,*) 'Sorry. This is certainly too much !' 
+      write(*,*) 'The number of variables ',NumCol,'is too big!' 
+      stop
+   endif
+!
+!  Precomputing the vector for BASE_nbase ---> BASE_10 conversion
 !
    nbase=int(idmax+1,kind=16)
    allocate(basepower(code_length))
@@ -2085,7 +2161,7 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
       basepower(i)=nbase**(int(i-1,kind=16))
    enddo
 !
-!     Compute the integer ID codes for each row
+!  Compute the integer ID codes for each row
 !
    allocate(idcode(NumSnapTot,numid))
    ifirst=1
@@ -2100,39 +2176,100 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
       enddo
       ifirst=ilast+1
       ilast=ilast+code_length
-!
    enddo
 !
-!     Sorting ID codes
+!  Sorting ID codes of each segment
 !
    allocate (indx(NumSnapTot))
    allocate (idcode_temp(NumSnapTot))
+   allocate (iconf_segment(NumSnapTot,numid))
+   allocate (iconf(NumSnapTot))
+
+   do l=1,numid
+
    do i=1,NumSnapTot
-      idcode_temp(i)=idcode(i,1)
+      idcode_temp(i)=idcode(i,l)
       indx(i)=i
    enddo
    call quick_sort(idcode_temp,indx)
 !
-!     counting conformational states
+!  counting conformational states for each id segment
 !
-   allocate (iconf(NumSnapTot))
-   iconf(indx(1))=1
    c=1
+   iconf_segment(indx(1),l)=1
    do k=2,NumSnapTot
       i=indx(k)
       j=indx(k-1)
-      lconf=.true.
-      do l=1,numid
-         lconf=lconf .and.  ( idcode(i,l) .eq. idcode(j,l) )
-      enddo
+      lconf=( idcode(i,l) .eq. idcode(j,l) )
       if ( .not. lconf ) c=c+1
-      iconf(i)=c
+      iconf_segment(i,l)=c
    enddo
+ 
+   enddo
+!
+   if ( numid  .gt.  1 ) then
+!     iconf_segment keeps the unique IDs of the conformational substates of each
+!     segment. Hence, we repeat the above strategy:
+!          1   get the idcode of the iconf_segment(i,:) rows
+!          2   sort them out
+!          3   count conformational states for snapshots
+
+      deallocate(basepower)
+      k=0
+      do l=1,numid
+         j=maxval(iconf_segment(:,l))
+         if (k .lt. j) k=j
+      enddo
+      nbase=int(k+1,kind=16)        
+                                   
+      allocate(basepower(numid))
+      do i=1,numid
+         basepower(i)=nbase**(int(i-1,kind=16))
+!
+!     Eventually, we may reach the huge limit because the possible values of 
+!     iconf_segment may rank on the millions.
+!     Fortunately, numid is expected to be a small integer (e.g., 2-3) so that
+!     most likely the idcodes fit into the integer (kind=16) type. 
+!
+        if ( huge(nbase) / basepower(i) .lt. nbase ) then
+           write(*,*) 'Probably, we have reached the representability limit'
+           write(*,*) 'It is not possible to handle idcodes with kind=16'
+           write(*,*) 'limit=',huge(nbase)
+           write(*,*) 'i=',i,' numid=',numid
+           write(*,*) 'nbase=',nbase
+           write(*,*) 'basepower=',basepower(i)
+           stop
+        endif
+     enddo
+
+      do k=1,NumSnapTot
+         idcode(k,1)=dot_product(int(iconf_segment(k,1:numid),kind=16),basepower(1:numid))
+      enddo
+!     print*,' MAXIMUM IDCODE ',maxval(idcode(:,1))
+      do i=1,NumSnapTot
+          idcode_temp(i)=idcode(i,1)
+          indx(i)=i
+      enddo
+
+      call quick_sort(idcode_temp,indx)
+      c=1
+      iconf(indx(1))=1
+      do k=2,NumSnapTot
+          i=indx(k)
+          j=indx(k-1)
+          lconf=( idcode(i,1) .eq. idcode(j,1) )
+          if ( .not. lconf ) c=c+1
+          iconf(i)=c
+      enddo
+   else
+!     if numid=1 then we already have the unique IDs of the conformational states
+      iconf=iconf_segment(:,1)
+   endif
 !
    allocate (CountState(NumSnapTot))
    CountState=0
 !
-!     computing ML entropy values per interval
+!  computing ML entropy values per interval
 !
    NumSnap0=1
    do ii=1,NumInterval
@@ -2148,9 +2285,8 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
       NumSnap0=NumSnap+1
    enddo
 !
-   NumState=c
-!
    deallocate (iconf)
+   deallocate (iconf_segment)
    deallocate (indx)
    deallocate (basepower)
    deallocate (idcode)
@@ -2159,8 +2295,6 @@ SUBROUTINE ENTRO_QSORT(idmax,N,NumSnapIni,SnapInterval,NumInterval,NumSnapTot,&
 
    return
 END SUBROUTINE ENTRO_QSORT
-!-----------------------------------------------------------------------------------------
-
 
 !*****************************************************************************************
 SUBROUTINE Get_Best_Ordering(DIST,NumCol,CutOff,lessthan,X,invX)
@@ -2545,8 +2679,8 @@ SUBROUTINE Read_Options(CutOff,MaxOrder,Method,filedat,filedist,filetable &
          print*," -ns SNAP_1 SNAP_2 OFFSET                     Default: Use all snapshots."
          print*,"     Entropy values are printed as a function of the number"
          print*,"     of frames from  SNAP_1 to SNAP_2 using the given OFFSET."
-         print*,"     If only LAST_SNAP _1 is given then"
-         print*,"     a single value is printed using frames from 1 to SNAP_1."
+         print*,"     If only SNAP_1 is given then only a single entropy value"
+         print*,"     is printed using frames from 1 to SNAP_1."
          print*,""
          print*," -ccmla        Use CCMLA method               Default: ccmla"
          print*,""
