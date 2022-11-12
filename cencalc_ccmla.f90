@@ -2586,14 +2586,14 @@ SUBROUTINE Read_Options(CutOff,MaxOrder,Method,filedat,filedist,filetable &
          call getarg(i, arg)
       elseif(arg.eq.'-prs2mat') then
          call getarg(i+1,arg)
-         read(arg,*,iostat=ios) fileps2mat
+         read(arg,'(A60)',iostat=ios) fileps2mat
          if(ios.ne.0) stop "ERROR: Check the s2mat file name. Use -help option for quick help"
          prints2=.true.
          C=C+2
          call getarg(i, arg)
       elseif(arg.eq.'-rds2mat') then
          call getarg(i+1,arg)
-         read(arg,*,iostat=ios) filers2mat
+         read(arg,'(A60)',iostat=ios) filers2mat
          if(ios.ne.0) stop "ERROR: Check the s2mat file name. Use -help option for quick help"
          reads2=.true.
          C=C+2
