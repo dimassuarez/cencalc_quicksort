@@ -12,13 +12,15 @@ The various techniques available in CENCALC have been discussed in the literatur
 
 We kindly request that any use of the CENCALC software or derivative should include at least the following citation:
 
-1)	E. Suárez, N. Díaz, J. Méndez and D. Suárez. CENCALC: A Computational Tool for Conformational Entropy Calculations from Molecular Simulations. J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350.
+1)	E. Suárez, N. Díaz, J. Méndez and D. Suárez. CENCALC: A Computational Tool for Conformational Entropy Calculations from Molecular Simulations. J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350
 
 The methods implemented in CENCALC are fully described in the following references: 
 
 2)	E. Suárez, N. Díaz and D. Suárez. Entropy Calculations of Single Molecules by Combining the Rigid-Rotor and Harmonic-Oscillator Approximations with Conformational Entropy Estimations from Molecular Dynamics Simulations J. Chem. Theor. Comput. 2011, 7, 2638-2653. DOI: 10.1021/ct200216n
 
-3)	E. Suárez, D. Suárez. Multibody Local Approximation: Application to Conformational Entropy Calculations on Biomolecules. J. Chem. Phys. 2012, 137, 084115. DOI: 10.1063/1.4748104.
+3)	E. Suárez, D. Suárez. Multibody Local Approximation: Application to Conformational Entropy Calculations on Biomolecules. J. Chem. Phys. 2012, 137, 084115. DOI: 10.1063/1.4748104
+
+4)	D. Suárez and N. Díaz. Toward Reliable and Insightful Entropy Calculations on Flexible Molecules. J. Chem. Theory Comput. 2022, 18, 7166–7178. DOI: 10.1021/acs.jctc.2c00858
 
 All questions regarding the usage of this version of the CENCALC program or bug reports should be addressed to Dimas Suárez (dimas@uniovi.es). 
 
