@@ -7,13 +7,13 @@
 ||______________________________|
   
  OMP Parallel Execution
- Number of Processors=          12
+ Number of Processors=          24
  Number of Threads   =           6
   
  Reading the data matrix..
  filename: MATRIX.dat                                                  
- CPU Time:     MATRIX load and processing       0.84 seconds     0.00 hours
- REAL Time:     MATRIX load and processing       0.83 seconds     0.00 hours
+ CPU Time:     MATRIX load and processing       0.73 seconds     0.00 hours
+ REAL Time:     MATRIX load and processing       0.71 seconds     0.00 hours
   
 -------------------------
  CALCULATING THE ENTROPY 
@@ -27,13 +27,13 @@
 =========================
 =========================
  Computing S1 (Marginal entropies)
- CPU Time:                Computing S1/S2       1.01 seconds     0.00 hours
- REAL Time:                Computing S1/S2       0.22 seconds     0.00 hours
+ CPU Time:                Computing S1/S2       1.04 seconds     0.00 hours
+ REAL Time:                Computing S1/S2       0.24 seconds     0.00 hours
   
 ------------------------------------       
  ESTIMATED ENTROPY (cal/mol-Kelvin)        
 ------------------------------------       
 # NumSnap     Entropy
   1000000      5.8956      7.0899      7.3571      7.0478      7.0396      7.3257      7.3190      7.2536      7.2402      7.2505      7.2830      7.3399      7.2929      7.2951      7.3063      7.3766      7.3869      7.3928      7.3943      7.4046
- CPU Time:                          Total       1.85 seconds     0.00 hours
- REAL Time:                          Total       1.04 seconds     0.00 hours
+ CPU Time:                          Total       1.77 seconds     0.00 hours
+ REAL Time:                          Total       0.96 seconds     0.00 hours

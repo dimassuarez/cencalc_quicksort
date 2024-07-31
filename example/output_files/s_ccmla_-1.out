@@ -7,13 +7,13 @@
 ||______________________________|
   
  OMP Parallel Execution
- Number of Processors=          12
+ Number of Processors=          24
  Number of Threads   =           6
   
  Reading the data matrix..
- filename: /dev/shm/TMPDIR_825155681/MATRIX.dat                        
- CPU Time:     MATRIX load and processing       0.81 seconds     0.00 hours
- REAL Time:     MATRIX load and processing       0.80 seconds     0.00 hours
+ filename: /dev/shm/TMPDIR_415689468/MATRIX.dat                        
+ CPU Time:     MATRIX load and processing       0.75 seconds     0.00 hours
+ REAL Time:     MATRIX load and processing       0.73 seconds     0.00 hours
   
 -------------------------
  CALCULATING THE ENTROPY 
@@ -25,13 +25,13 @@
  Number of Snapshots= 1000000
  Number of Columns  =       8
 =========================
- CPU Time:                Computing CCMLA       5.70 seconds     0.00 hours
- REAL Time:                Computing CCMLA       1.47 seconds     0.00 hours
+ CPU Time:                Computing CCMLA       5.41 seconds     0.00 hours
+ REAL Time:                Computing CCMLA       1.46 seconds     0.00 hours
   
 ------------------------------------       
  ESTIMATED ENTROPY (cal/mol-Kelvin)        
 ------------------------------------       
 # NumSnap     Entropy
-  1000000      2.4771      4.9444      5.3259      4.8439      4.8139      5.2746      5.3085      5.2092      5.1620      5.1882      5.2630      5.3441      5.2822      5.2878      5.3049      5.4054      5.4207      5.4327      5.4317      5.4416
- CPU Time:                          Total       6.52 seconds     0.00 hours
- REAL Time:                          Total       2.27 seconds     0.00 hours
+  1000000      2.4872      4.9563      5.3369      4.8580      4.8286      5.2840      5.3121      5.2106      5.1641      5.1930      5.2659      5.3485      5.2867      5.2926      5.3084      5.4092      5.4234      5.4347      5.4326      5.4416
+ CPU Time:                          Total       6.16 seconds     0.00 hours
+ REAL Time:                          Total       2.19 seconds     0.00 hours
