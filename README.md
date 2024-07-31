@@ -58,7 +58,7 @@ For example, if calc_sconform.sh is copied into the example directory, the follo
 env NPROCS=6 MOL_MASK=":1" REFTOP="$PWD/top_traj_files/drug_25.top" \
     TRAJDIR="$PWD/top_traj_files" PREFIX_MDCRD="drug_25" SUFFIX_MDCRD=".mdcrd" \
     DO_CC_MLA=1  CUTOFF=" -1 "  \
-    SCRATCH="/scratch" ../calc_sconform.sh
+    SCRATCH="/scratch" ./calc_sconform.sh
 ```
 
 will process the trajectory drug_25*.mdcrd file(s) located in the top_traj_files folder in order to obtain the time evolution of the discretized torsions and calculate the CC-MLA entropy (DO_CC_MLA=1) with no cutoff (CUTOFF=-1). A python3 script (sconform_plot.py ) is also written in the output directory that produces  convergence plots of the entropy calculations. Successful execution of this test should create the following output files:
