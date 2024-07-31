@@ -7,13 +7,11 @@
 ##########################################################################3
 # Programs being used
 
-
 #CENCALC programs
 export LD_LIBRARY_PATH="/opt/dislin/":$LD_LIBRARY_PATH
-CENCALC_PATH="/opt/ccmla/"
+CENCALC_PATH="/home/dimas/SCRIPTS/CCMLA_QSORT/"
 CENCALC="$CENCALC_PATH/cencalc_ccmla"
-
-# Make sure that get_tor.py has execution permissions
+PREP="$CENCALC_PATH/cencalc_prep"
 GETTOR="$CENCALC_PATH/get_tor.py -noMet -puck" # Choose torsion selection options here 
 
 # AMBER trajectory analysis software
@@ -28,8 +26,7 @@ NCDUMP=$(which  ncdump| grep -v alias)
 if [ -z "$NCDUMP" ]; then echo 'ncudmp seems to be not available, but needed!';  DO_EXIT=1; fi
 
 #  GNU Parallel builds and runs commands in parallel. 
-PARALLEL=$(which  parallel | grep -v alias)
-if [ -z "$PARALLEL" ]; then echo 'parallel seems to be not available, but needed!';  DO_EXIT=1; fi
+PARALLEL="/opt/parallel-bash/bin/parallel --no-notice "  
 
 ##########################################################################3
 # The following environmental variables specify the solute mask, 
@@ -107,20 +104,20 @@ else
       echo "Using TRAJDIR=$TRAJDIR"
    fi
 fi
-if [ -z "$MDCRD_PREFIX" ]
+if [ -z "$PREFIX_MDCRD" ]
 then
    echo "Prefix of mdcrd files not defined, but needed." 
    DO_EXIT=1
 else 
-   echo "Assuming MDCRD_PREFIX=$MDCRD_PREFIX"
+   echo "Assuming PREFIX_MDCRD=$PREFIX_MDCRD"
 fi
-if [ -z "$MDCRD_SUFFIX" ]
+if [ -z "$SUFFIX_MDCRD" ]
 then
    echo "Suffix of mdcrd files not defined, but recommended." 
-   MDCRD_SUFFIX=".mdcrd"
-   echo "Attempting MDCRD_SUFFIX=$MDCRD_SUFFIX"
+   SUFFIX_MDCRD=".mdcrd"
+   echo "Attempting SUFFIX_MDCRD=$SUFFIX_MDCRD"
 else 
-   echo "Assuming MDCRD_SUFFIX=$MDCRD_SUFFIX"
+   echo "Assuming SUFFIX_MDCRD=$SUFFIX_MDCRD"
 fi
 
 fi     # endif of DO_CC_MLA -lt 1
@@ -155,6 +152,14 @@ export OMP_NUM_THREADS=$NPROCS
 export OMP_STACKSIZE="2G"    
  
 # The following variables remain normally unchanged
+# PERCEN 
+if [ -z "$PERCEN" ]
+then
+   echo "Processing the whole data set"
+   PERCEN="0"
+else
+   echo "Processing $PERCEN % of the data set"
+fi
 
 # OFFSET   
 if [ -z "$OFFSET" ]
@@ -173,6 +178,14 @@ then
 else
    echo "Convergence plot using ${NINTERVAL} points"
 fi
+
+# TEMPERATURE
+# Concentration Parameter
+if [ -z "$TEMPERATURE" ]
+then
+   TEMPERATURE="300"
+fi
+echo "TEMPERATURE (K)=$TEMPERATURE"
 
 # Concentration Parameter
 if [ -z "$KPARAM" ]
@@ -223,14 +236,14 @@ then
 # TRAJECTORY 
 i=0
 declare -a TRAJ=""
-for midterm in $(cd $TRAJDIR; ls ${MDCRD_PREFIX}*${MDCRD_SUFFIX} | sed "s/${MDCRD_PREFIX}//" | sed "s/${MDCRD_SUFFIX}//" | sort -n; cd $WORKDIR)
+for midterm in $(cd $TRAJDIR; ls ${PREFIX_MDCRD}*${SUFFIX_MDCRD} | sed "s/${PREFIX_MDCRD}//" | sed "s/${SUFFIX_MDCRD}//" | sort -n; cd $WORKDIR)
 do
    let "i=$i+1"
-   TRAJ["$i"]=$TRAJDIR/${MDCRD_PREFIX}${midterm}${MDCRD_SUFFIX}
+   TRAJ["$i"]=$TRAJDIR/${PREFIX_MDCRD}${midterm}${SUFFIX_MDCRD}
 done
 NTRAJ="$i"
 
-echo "After doing ls $TRAJDIR/${MDCRD_PREFIX}*${MDCRD_SUFFIX} .... we get"
+echo "After doing ls $TRAJDIR/${PREFIX_MDCRD}*${SUFFIX_MDCRD} .... we get"
 echo "number of trajectory files = $NTRAJ "  
 
 if [ $NTRAJ -eq 0 ]
@@ -363,41 +376,84 @@ echo "Cpptraj-dihedral : $CPU_TOR " >> $WORKDIR/CPU_TIME.dat
 echo "Cpptraj-distmat  : $CPU_DISTMAT " >> $WORKDIR/CPU_TIME.dat
 echo "Cencalc-Prep     : $CPU_PREP " >> $WORKDIR/CPU_TIME.dat
 
-#Running cencalc 
-echo "Running cencalc S1 ..."
-
-NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
-let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
-$CENCALC -s1  -c -1 -data MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out
-
-CPU_S1=$(grep ' Total ' s1.out  | grep CPU | awk '{print $4}') 
-echo "Cencalc-S1       : $CPU_S1 " >> $WORKDIR/CPU_TIME.dat
-
-cp  s1_plot.tab  s1.out $WORKDIR/ 
-
 cd $WORKDIR/
 
 rm -r -f $TMPDIR 
 
 fi 
 
+# Preparing cencalc executions
+TT=$(date +%N)
+TMPSHM=/dev/shm/TMPDIR_${TT}
+mkdir $TMPSHM 
+NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
+
+#  Optionaly, only a fraction of the data in MATRIX.dat is used
+if [ "$PERCEN" -gt "100" ]
+then
+   echo 'PERCENTAGE greater than 100' 
+   echo 'Using all data !'
+   PERCEN=0
+fi
+if [ "$PERCEN" -lt "-100" ]
+then
+   echo 'PERCENTAGE greater than 100' 
+   echo 'Using all data !'
+   PERCEN=0
+fi
+if [ $PERCEN -eq 0 ] 
+then 
+   MATRIX_FILE="MATRIX.dat"
+   SUFFIX_TAB=""
+else
+   echo "Using only $PERCEN % of the available data"
+   echo "  > 0  --> From the begining"
+   echo "  < 0  --> From the end"
+   if [ "$PERCEN" -gt 0 ]
+   then
+       let  " NFRAMES_use  =  ( $NFRAMES *  $PERCEN ) / 100  "
+       head -${NFRAMES_use}  MATRIX.dat > $TMPSHM/MATRIX_${PERCEN}.dat
+       echo "Using only the first $NFRAMES_use frames"
+       SUFFIX_TAB="_first_${PERCEN}"
+   else
+       let  " NFRAMES_use  =  ( $NFRAMES * ( - $PERCEN ) ) / 100  "
+       tail -${NFRAMES_use}  MATRIX.dat > $TMPSHM/MATRIX_${PERCEN}.dat
+       echo "Using only the last $NFRAMES_use frames"
+       SUFFIX_TAB="_last_${PERCEN/-/}"
+   fi 
+   MATRIX_FILE="$TMPSHM/MATRIX_${PERCEN}.dat"
+fi 
+
+#Running cencalc 
+echo "Running cencalc S1 ..."
+NFRAMES=$(wc -l $MATRIX_FILE | awk '{print $1}')
+let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
+$CENCALC -s1  -c -1 -data $MATRIX_FILE  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab${SUFFIX_TAB} > s1.out${SUFFIX_TAB}
+
+CPU_S1=$(grep ' Total ' s1.out  | grep CPU | awk '{print $4}') 
+echo "Cencalc-S1       : $CPU_S1 " >> $WORKDIR/CPU_TIME.dat
+
 if [ "$DO_CC_MLA" -eq 1 ]  || [ "$DO_CC_MLA" -eq 2 ]
 then
 
-   if [ ! -e MATRIX.dat ];  then  echo "DO_CC_MLA=1,2 but MATRIX.dat does not exist"; exit; fi
-   NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
+   if [ ! -e $MATRIX_FILE ];  then  echo "DO_CC_MLA=1,2 but $MATRIX_FILE does not exist"; exit; fi
+   NFRAMES=$(wc -l $MATRIX_FILE | awk '{print $1}')
    let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
 
-   TT=$(date +%N)
-   TMPSHM=/dev/shm/TMPDIR_${TT}
-   mkdir $TMPSHM
-   cp MATRIX.dat $TMPSHM/
+   if [ "$PERCEN" -eq 0 ]
+   then 
+       cp MATRIX.dat $TMPSHM/
+       MATRIX_FILE="$TMPSHM/MATRIX.dat"
+   fi
 
-   rm -f ccmla_plot.tab
-   touch ccmla_plot.tab 
+   rm -f ccmla_plot.tab${SUFFIX_TAB}
+   touch ccmla_plot.tab${SUFFIX_TAB} 
    cuttoff_plot=""
 
-   if [ ! -e s1_plot.tab ]; then $CENCALC -s1 -c -1 -data $TMPSHM/MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out; fi
+   if [ ! -e s1_plot.tab${SUFFIX_TAB} ] 
+   then 
+      $CENCALC -s1 -c -1 -data $MATRIX_FILE  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab${SUFFIX_TAB} > s1.out${SUFFIX_TAB}
+   fi
 
    if [ $DO_COMP_CC_MLA -eq  0 ]
    then 
@@ -405,127 +461,46 @@ then
         for cutoff in $(echo $CUTOFF)
         do
             echo "Running cencalc CCMLA with cutoff=${cutoff} "
-            $CENCALC $VERBOSE -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
-             -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_${cutoff}.tab >  s_ccmla_${cutoff}.out
-             paste ccmla_plot.tab s_ccmla_${cutoff}.tab  > tmp; mv tmp ccmla_plot.tab
-             cutoff_plot="${cutoff_plot} ${cutoff}"
-             CPU_CC=$(grep ' Total ' s_ccmla_${cutoff}.out  | grep CPU | awk '{print $4}') 
+            $CENCALC $VERBOSE -ccmla  -c ${cutoff} -data $MATRIX_FILE   -dist  reduced_dist_matrix.dat \
+             -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_${cutoff}.tab${SUFFIX_TAB} >  s_ccmla_${cutoff}.out${SUFFIX_TAB}
+             paste ccmla_plot.tab${SUFFIX_TAB} s_ccmla_${cutoff}.tab${SUFFIX_TAB}  > tmp; mv tmp ccmla_plot.tab${SUFFIX_TAB}
+             cutoff_plot="${cutoff_plot} ${cutoff} ,"
+             CPU_CC=$(grep ' Total ' s_ccmla_${cutoff}.out${SUFFIX_TAB}  | grep CPU | awk '{print $4}') 
              echo "Cencalc-CCMLA ${cutoff}  : $CPU_CC " >> CPU_TIME.dat
         done
-        sed -i 's/\t/ /g' ccmla_plot.tab
+        cutoff_plot=${cutoff_plot::-1}
+        sed -i 's/\t/ /g' ccmla_plot.tab${SUFFIX_TAB}
 
    else
 
-       touch ccmla_plot.tab 
+       touch ccmla_plot.tab${SUFFIX_TAB} 
        cuttoff_plot=""
        for cutoff in $(echo $CUTOFF)
        do
            echo "Running cencalc composite CCMLA cutoff=${cutoff} "
-           $CENCALC $VERBOSE  -ccmla  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
+           $CENCALC $VERBOSE  -ccmla  -c ${cutoff} -data $MATRIX_FILE   -dist  reduced_dist_matrix.dat \
              -s2filt $CUTS2F1  $CUTS2F2  -prs2mat s_ccmla_comp.s2mat \
-            -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_comp_${cutoff}.tab >  s_ccmla_comp_${cutoff}.out
-           paste ccmla_plot.tab s_ccmla_comp_${cutoff}.tab  > tmp; mv tmp ccmla_plot.tab
-           cutoff_plot="${cutoff_plot} ${cutoff}"
-           CPU_CC=$(grep ' Total ' s_ccmla_comp_${cutoff}.out  | grep CPU | awk '{print $4}') 
+            -ns $NSTEP  $NFRAMES  $NSTEP  -t s_ccmla_comp_${cutoff}.tab${SUFFIX_TAB} >  s_ccmla_comp_${cutoff}.out${SUFFIX_TAB}
+           paste ccmla_plot.tab${SUFFIX_TAB} s_ccmla_comp_${cutoff}.tab${SUFFIX_TAB}  > tmp; mv tmp ccmla_plot.tab${SUFFIX_TAB}
+           cutoff_plot="${cutoff_plot} ${cutoff} ,"
+           CPU_CC=$(grep ' Total ' s_ccmla_comp_${cutoff}.out${SUFFIX_TAB}  | grep CPU | awk '{print $4}') 
            echo "Cencalc-CCMLA comp $CUTS2F1  $CUTS2F2  ${cutoff} : $CPU_CC " >> CPU_TIME.dat
        done
-       sed -i 's/\t/ /g' ccmla_plot.tab
+       cutoff_plot=${cutoff_plot::-1}
+       sed -i 's/\t/ /g' ccmla_plot.tab${SUFFIX_TAB}
 
 fi
-     
-$OCTAVE -q <<EOF
-A=load('s1_plot.tab');
-s1=A(:,2);
-isnap=A(:,1);
-clear A;
 
-cutoff=[ $cutoff_plot  ];
+cp $CENCALC_PATH/sconform_plot.py .
+chmod 755 sconform_plot.py
 
-nplot=length(cutoff);
+sed -i  "s/DUMMY_CUTOFF/${cutoff_plot}/g" sconform_plot.py
+sed -i  "s/DUMMY_METHOD/ccmla/g" sconform_plot.py
+sed -i  "s/DUMMY_TEMP/${TEMPERATURE}/g" sconform_plot.py
+sed -i  "s/DUMMY_SUFFIX_TAB/${SUFFIX_TAB}/g" sconform_plot.py
+sed -i  "s/DUMMY_COMPOSITE/${DO_COMP_CC_MLA}/g" sconform_plot.py
 
-B=load('ccmla_plot.tab');
-[n,m]=size(B);
-
-ncorr=(m/nplot);
-j=0;
-scc=zeros(n,nplot);
-for i=[ncorr:ncorr:m]
-  j=j+1;
-  scc(:,j)=B(:,i);
-end
-
-T=0.300;
-%Representacion grafica 
-clf();
-h=figure(1);
-
-plot (isnap,-T*s1,'-o','Linewidth',2,'Markersize',4)
-ymin=min(-T*s1);
-ymax=max(-T*s1);
-legend('s1');
-hold
-txt=['S_1'];
-composite=${DO_COMP_CC_MLA};
-
-for j=[1:nplot]
-  plot (isnap,-T*scc(:,j),'-o','Linewidth',2,'Markersize',4)
-  if composite == 1
-  txt=[txt;['CCMLA Comp. r_c=',num2str(cutoff(j))]];
-  else
-  txt=[txt;['CCMLA r_c=',num2str(cutoff(j))]];
-  end
-  ymin_corr=min(-T*scc(:,j));
-  ymax_corr=max(-T*scc(:,j));
-  ymin=min([ymin,ymin_corr]);
-  ymax=max([ymax,ymax_corr]);
-end
-
-grid on;
-W = 8; H = 6;
-set(h,'PaperUnits','inches')
-set(h,'PaperOrientation','portrait');
-set(h,'PaperSize',[H,W])
-set(h,'PaperPosition',[0,0,W,H])
-set(gca,'Fontname','Times')
-set(gca,'Fontsize',18)
-legend(txt);
-xlim([0 max(isnap)])
-ylim([ymin*1.1  ymax*0.9 ])
-xlabel('# Snap ','Fontsize',18)
-% \305 for Angstroms 
-ylabel(['-TS_{conform} kcal/mol'],'Fontsize',18)
-print(h,'s_ccmla.png','-dpng','-color')
-
-if nplot > 1 
-
-if composite == 1 
-   fid=fopen('s_ccmla_composite.tab','w');
-else
-   fid=fopen('s_ccmla.tab','w');
-end
-fmtA=' %s ';
-fmtB=' %i ';
-for j=[1:nplot]
-   if  composite == 1
-   fmtA=[fmtA,' CCMLA Comp r_c=%6.2f '];
-   else
-   fmtA=[fmtA,' CCMLA r_c=%6.2f '];
-   end
-   fmtB=[fmtB,' %10.4f '];
-end
-fmtA=[fmtA,'\n'];
-fmtB=[fmtB,'\n'];
-fprintf(fid,fmtA,'# NumSnap',cutoff);
-for i=[1:n]
-   fprintf(fid,fmtB,isnap(i),scc(i,:))
-end
-fclose(fid);
-
-end
-
-EOF
-
-rm -r -f $TMPSHM 
+./sconform_plot.py
 
 fi
 
@@ -533,118 +508,50 @@ fi
 if [ "$DO_S2" -eq 1 ]  || [ "$DO_S2" -eq 2 ]
 then
 
-   if [ ! -e MATRIX.dat ];  then  echo "DO_S2=1,2 but MATRIX.dat does not exist"; exit; fi
-   NFRAMES=$(wc -l MATRIX.dat | awk '{print $1}')
+   if [ ! -e $MATRIX_FILE ];  then  echo "DO_S2=1,2 but $MATRIX_FILE does not exist"; exit; fi
+   NFRAMES=$(wc -l $MATRIX_FILE | awk '{print $1}')
    let "NSTEP = ${NFRAMES} / ${NINTERVAL}"
 
-   TT=$(date +%N)
-   TMPSHM=/dev/shm/TMPDIR_${TT}
-   mkdir $TMPSHM
-   cp MATRIX.dat $TMPSHM/
+   if [ "$PERCEN" -eq 0 ]
+   then 
+       cp MATRIX.dat $TMPSHM/
+       MATRIX_FILE="$TMPSHM/MATRIX.dat"
+   fi
 
-   rm -f s2_plot.tab
-   touch s2_plot.tab 
+   rm -f s2_plot.tab${SUFFIX_TAB}
+   touch s2_plot.tab${SUFFIX_TAB} 
    cuttoff_plot=""
 
-   if [ ! -e s1_plot.tab ]; then $CENCALC -s1 -c -1 -data $TMPSHM/MATRIX.dat  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab > s1.out; fi
+   if [ ! -e s1_plot.tab${SUFFIX_TAB} ]; then $CENCALC -s1 -c -1 -data $MATRIX_FILE  -ns $NSTEP $NFRAMES $NSTEP -t s1_plot.tab${SUFFIX_TAB} > s1.out${SUFFIX_TAB}; fi
 
         for cutoff in $(echo $CUTOFF)
         do
             echo "Running cencalc S2 with cutoff=${cutoff} "
-            $CENCALC $VERBOSE -s2 -shuffle  -c ${cutoff} -data $TMPSHM/MATRIX.dat   -dist  reduced_dist_matrix.dat \
-             -ns $NSTEP  $NFRAMES  $NSTEP  -t s2_${cutoff}.tab >  s2_${cutoff}.out
-             paste s2_plot.tab s2_${cutoff}.tab  > tmp; mv tmp s2_plot.tab
-             cutoff_plot="${cutoff_plot} ${cutoff}"
-             CPU_S2=$(grep ' Total ' s2_${cutoff}.out  | grep CPU | awk '{print $4}') 
+            $CENCALC $VERBOSE -s2 -shuffle  -c ${cutoff} -data $MATRIX_FILE   -dist  reduced_dist_matrix.dat \
+             -ns $NSTEP  $NFRAMES  $NSTEP  -t s2_${cutoff}.tab${SUFFIX_TAB} >  s2_${cutoff}.out${SUFFIX_TAB}
+             paste s2_plot.tab${SUFFIX_TAB} s2_${cutoff}.tab${SUFFIX_TAB}  > tmp; mv tmp s2_plot.tab${SUFFIX_TAB}
+             cutoff_plot="${cutoff_plot} ${cutoff} ,"
+             CPU_S2=$(grep ' Total ' s2_${cutoff}.out${SUFFIX_TAB}  | grep CPU | awk '{print $4}') 
              echo "Cencalc-S2 ${cutoff}  : $CPU_S2 " >> CPU_TIME.dat
         done
-        sed -i 's/\t/ /g' s2_plot.tab
+        sed -i 's/\t/ /g' s2_plot.tab${SUFFIX_TAB}
      
-$OCTAVE -q <<EOF
-A=load('s1_plot.tab');
-s1=A(:,2);
-isnap=A(:,1);
-clear A;
+    cp $CENCALC_PATH/sconform_plot.py .
+    chmod 755 sconform_plot.p
 
-cutoff=[ $cutoff_plot  ];
+    sed -i  "s/DUMMY_CUTOFF/${cutoff_plot}/g" sconform_plot.py
+    sed -i  "s/DUMMY_METHOD/s2/g" sconform_plot.py
+    sed -i  "s/DUMMY_TEMP/${TEMPERATURE}/g" sconform_plot.py
+    sed -i  "s/DUMMY_SUFFIX_TAB/${SUFFIX_TAB}/g" sconform_plot.py
+    sed -i  "s/DUMMY_COMPOSITE/0/g" sconform_plot.py
 
-nplot=length(cutoff);
-
-B=load('s2_plot.tab');
-[n,m]=size(B);
-
-ncorr=(m/nplot);
-j=0;
-scc=zeros(n,nplot);
-for i=[ncorr:ncorr:m]
-  j=j+1;
-  scc(:,j)=B(:,i);
-end
-
-T=0.300;
-%Representacion grafica 
-clf();
-h=figure(1);
-
-plot (isnap,-T*s1,'-o','Linewidth',2,'Markersize',4)
-ymin=min(-T*s1);
-ymax=max(-T*s1);
-legend('s1');
-hold
-txt=['S_1'];
-
-for j=[1:nplot]
-  plot (isnap,-T*scc(:,j),'-o','Linewidth',2,'Markersize',4)
-  txt=[txt;['S2 r_c=',num2str(cutoff(j))]];
-  ymin_corr=min(-T*scc(:,j));
-  ymax_corr=max(-T*scc(:,j));
-  ymin=min([ymin,ymin_corr]);
-  ymax=max([ymax,ymax_corr]);
-end
-
-grid on;
-W = 8; H = 6;
-set(h,'PaperUnits','inches')
-set(h,'PaperOrientation','portrait');
-set(h,'PaperSize',[H,W])
-set(h,'PaperPosition',[0,0,W,H])
-set(gca,'Fontname','Times')
-set(gca,'Fontsize',18)
-legend(txt);
-xlim([0 max(isnap)])
-ylim([ymin*1.1  ymax*0.9 ])
-xlabel('# Snap ','Fontsize',18)
-% \305 for Angstroms 
-ylabel(['-TS_{conform} kcal/mol'],'Fontsize',18)
-print(h,'s2.png','-dpng','-color')
-
-if nplot > 1 
-
-fid=fopen('s_s2.tab','w');
-fmtA=' %s ';
-fmtB=' %i ';
-for j=[1:nplot]
-   fmtA=[fmtA,' S2 r_c=%6.2f '];
-   fmtB=[fmtB,' %10.4f '];
-end
-fmtA=[fmtA,'\n'];
-fmtB=[fmtB,'\n'];
-fprintf(fid,fmtA,'# NumSnap',cutoff);
-for i=[1:n]
-   fprintf(fid,fmtB,isnap(i),scc(i,:))
-end
-fclose(fid);
-
-end
-
-EOF
+    ./sconform_plot.py
 
 
-
-
-rm -r -f $TMPSHM 
 
 fi
+
+rm -r -f $TMPSHM 
 
 #=======================================================================================
  
