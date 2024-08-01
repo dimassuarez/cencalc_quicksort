@@ -4,24 +4,31 @@ prep   = cencalc_prep
 ccmla  = cencalc_ccmla
 all : $(prep) $(ccmla) 
 
+#
 # DISLIN: scientific data plotting software at https://www.dislin.de/
 #
-# DISLIN path. Make sure that dislin.mod is precompiled
-# with the same compiler version used here. Add DISLIN to LD_LIBRARY_PATH for runntime
+# Make sure that dislin.mod is precompiled
+# with the same compiler version used here. 
+#
+# Add DISLIN_PATH to LD_LIBRARY_PATH for runtime
 #  
-DISLIN = /opt/apps/SL7/dislin/
+DISLIN_PATH = /opt/dislin/
+# IF DISLIN is NOT used comment the next two lines
+# DISLIN_LIB = -DDISLIN -L $(DISLIN_PATH) -ldislin_d
+# DISLIN_INC = -I $(DISLIN_PATH)/gf/real64/
 
 # GNU fortran version 8.3.1 or higher is required
-FCOMPL = gfortran
-FFLAGC = -fopenmp  -I $(DISLIN)/gf/real64/ 
+FCOMPL = gfortran -cpp
+FFLAGC = -fopenmp  $(DISLIN_INC) 
 
 # For production 
 FFLAGC_EXTRA = -O3 -funroll-loops -finline -finline-functions -ftree-vectorize -ffast-math  
 
 # For debugging 
-#FFLAGC_EXTRA = -fbacktrace -finit-real=nan -g -pg -fcheck=all -fdump-core -fmax-errors=1 -ffpe-trap=invalid -Wconversion-extra
+#FFLAGC_EXTRA = -fbacktrace -finit-real=nan -g -pg -fcheck=all -fdump-core \
+#               -fmax-errors=1 -ffpe-trap=invalid -Wconversion-extra
 # 
-LDFLAG_PREP = $(opt) -fopenmp  -L $(DISLIN) -ldislin_d
+LDFLAG_PREP = $(opt) -fopenmp  $(DISLIN_LIB)
 LDFLAG = $(opt) -fopenmp  
 
 # Implicit rules

@@ -38,6 +38,7 @@ for i in range(1, len(argv[0:])):
         print('                    -sel 1,5-20,33   as above, but including two more residues: 1 and 33')
         print('\n          -puck   The conformational state of 5-membered rings in PRO and HYP residues')
         print('                    is described by puckering angles (Pople-Cremer convention).')
+        print('                    For DNA sugars, multipucker cpptraj method is selected.')
         print('\n          -noMet    Torsional angles involving Methyl/Ammonium groups are not considered')
         print('\n          -help     Print this quick help.')
         print('\nEXAMPLES:')

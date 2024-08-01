@@ -191,7 +191,7 @@ PROGRAM CENCALC_PREP
 
    k_value = 0.50D0                                           !The smoothing parameter "v" of
    !the von-Mises kernel density estimation
-   !depends of the k_value see eq.(7) in ref:
+   !depends on the k_value see eq.(7) in ref:
    !Computational Statistics & Data Analysis
    !Volume 52, Issue 7, 15 March 2008, Pages 3493-3500.
    !Here we do not estimate k_value, but simply
@@ -535,12 +535,12 @@ PROGRAM CENCALC_PREP
 !
 ! PLOTTING info
 !
-   if ( Plot ) then
+   if ( (Plot) .or. (Saveplotdata) ) then
       plotsize = 2
       write(*,'(A49)') " Creating PDF and Time evolution plots  ..."
       do k = 1, NumFiles
-         call HistPDF_Time_Plot(Saveplotdata, NumSnap, Filelist(k), IdDiH(k),  &
-            FNumMins(k), minimum(:,k), Pop(:,k),                   &
+         call HistPDF_Time_Plot(Plot, Saveplotdata, NumSnap, Filelist(k),  &
+            IdDiH(k), FNumMins(k), minimum(:,k), Pop(:,k),                   &
             Bigmatrix(:,k), &
             Density(0:360, k), HistDensity(0:72, k), plotsize)
       enddo
@@ -1060,6 +1060,8 @@ SUBROUTINE Read_Options(FileList, UseCol, InfoFileName, DistMatrixName, &
          endif
          if(answer.eq."yes") Saveplotdata=.true.
          i = i+1
+
+#ifdef DISLIN
       elseif((Arguments(i).eq.'-plot').and.(.not.EO)) then
          read(Arguments(i+1), *,iostat = ios) answer
          if((ios .ne. 0).or.(.not.((answer.eq."yes").or.(answer.eq."no")))) then
@@ -1069,6 +1071,17 @@ SUBROUTINE Read_Options(FileList, UseCol, InfoFileName, DistMatrixName, &
          endif
          if(answer.eq."yes") Plot=.true.
          i = i+1
+#else
+      elseif((Arguments(i).eq.'-plot').and.(.not.EO)) then
+         read(Arguments(i+1), *,iostat = ios) answer
+         if(ios .eq. 0) then
+            i = i+1
+         endif
+         Plot=.false.
+         print*,"WARNING: cencalc_prep compiled without DISLIN support"
+         print*,"         option-plot is then not available!"
+#endif
+
       elseif((Arguments(i).eq.'-step').and.(.not.EO)) then
          call getarg(i+1, arg)
          read(arg, *,iostat = ios) Step
@@ -1163,15 +1176,21 @@ SUBROUTINE Read_Options(FileList, UseCol, InfoFileName, DistMatrixName, &
          print*,""
          print*," -maxconf   MAX_NUMBER_OF_CONFORMERS           Default: 3"
          print*,"            Maximum number of conformers to be searched for each"
-         print*,"            dihedral angle"
+         print*,"            dihedral angle."
          print*,""
+#ifdef DISLIN
          print*," -plot      yes/no                             Default: no"
          print*,"            Plots PDF and time evolution of Dihedral angles "
-         print*,"            The DISLIN package is used to create PNG files"
+         print*,"            The DISLIN package is used to create PNG files."
+#else
+         print*," -plot      yes/no                             Default: no"
+         print*,"            This option is NOT availabe because cencalc_prep "
+         print*,"            was compiled without DISLIN support."
+#endif
          print*,""
          print*," -saveplotdata   yes/no                       Default: no"
          print*,"            Plot data are saved in csv files."
-         print*,"            Useful to recreate graphics using other software."
+         print*,"            Useful to make graphics using other software."
          print*,""
          print*," --wrbigmat BIGMATRIX_FILE_NAME                Default: no "
          print*,"            The BIGMATRIX is printed out and the program stops."
@@ -1206,8 +1225,8 @@ SUBROUTINE Read_Options(FileList, UseCol, InfoFileName, DistMatrixName, &
 END SUBROUTINE Read_Options
 
 !*****************************************************************************************
-SUBROUTINE HistPDF_Time_Plot(Saveplotdata, NumSnap, dihedFILE, dihedID, FNumMin, minimum, &
-   Pop, DiscreteAng, density, histogram, plotsize)
+SUBROUTINE HistPDF_Time_Plot(Plot,Saveplotdata, NumSnap, dihedFILE, dihedID, FNumMin, &
+   minimum, Pop, DiscreteAng, density, histogram, plotsize)
 !*****************************************************************************************
 ! Get the plots of the Von Mises probability density function
 ! The DISLIN package is needed
@@ -1215,15 +1234,20 @@ SUBROUTINE HistPDF_Time_Plot(Saveplotdata, NumSnap, dihedFILE, dihedID, FNumMin,
 !  Things yet to do: Implement control of quality PNG
 !----------------------------------------------------------------------------------------
    use parameters
+
+#ifdef DISLIN
    use dislin
+#endif
+
    implicit none
    !-VARIABLE DEFINITIONS--------------------------------------------------------------
+   logical  Plot                  ! Print png file using DISLIN 
    logical  Saveplotdata          ! Save plot data in a csv file
    integer, intent(in):: NumSnap                          !Number of snapshots
    integer, intent(in):: DiscreteAng(NumSnap)      !Discretized Dihedral angle
    integer plotsize               ! Scaling factor for plot size (1, 2, 3, ....
    integer  FnumMin               ! Number of located minima
-   real(DP) minimum(9)            ! Positining of minima (in degrees)
+   real(DP) minimum(9)            ! Positioning of minima (in degrees)
    real(DP) Pop(9)                ! % population
    real(DP) density(0:360)        ! von Mises Probability Density Function
    real(DP) histogram(0:72)       ! Histogram Probability Density Function 5 degree binsize
@@ -1271,9 +1295,12 @@ SUBROUTINE HistPDF_Time_Plot(Saveplotdata, NumSnap, dihedFILE, dihedID, FNumMin,
    enddo
    lFILE = i-1
 
+#ifdef DISLIN
 !
 ! General settings of the DISLIN plot
 !
+   if ( Plot ) then
+ 
    CALL METAFL('PNG')      !   PNG file type
    CALL WINSIZ(853*plotsize, 603*plotsize)    !  resolution of image file
 !     CALL PNGMOD('ON','TRANSPARENCY')
@@ -1381,6 +1408,11 @@ SUBROUTINE HistPDF_Time_Plot(Saveplotdata, NumSnap, dihedFILE, dihedID, FNumMin,
    CALL ERRMOD('protocol','off')
 
    CALL DISFIN
+
+   endif
+
+#endif
+
    if ( Saveplotdata ) then
       open(33, file = dihedFILE(1:lFILE)//'.csv',status='unknown')
       write(33, '(a)') '# Dihedral= '//dihedID
